@@ -16,6 +16,9 @@ import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.util.List;
 
+/**
+ * Kitchen sink class for any utility methods.
+ */
 public class Util {
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
 
@@ -23,10 +26,27 @@ public class Util {
         throw new IllegalStateException("Class doesn't support instantiation.");
     }
 
+    /**
+     * Creates a {@link Cookie} from a string representation of a json.
+     *
+     * @param json being parsed as a {@link Cookie}
+     * @return {@link Cookie} from a string representation of a json
+     */
     public static Cookie getCookie(String json) {
         return new Gson().fromJson(json, Cookie.class);
     }
 
+    /**
+     * Creates and saves the Excel file containing all the property values. Excel headers are created from the object field names
+     * and property values are taken from the field values themselves.
+     * <p>
+     * This can be made more abstract in the future. No need to do so, for now.
+     *
+     * @param properties as data being written into the Excel file
+     * @param fileName   of the output file
+     * @return Excel file containing all the property values
+     */
+    @SuppressWarnings("UnusedReturnValue") // future plans
     public static File exportResults(List<Property> properties, String fileName) {
         String[] split = fileName.split("/");
         fileName = split[split.length - 1] + ".xlsx";

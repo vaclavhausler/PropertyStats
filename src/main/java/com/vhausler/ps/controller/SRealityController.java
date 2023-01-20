@@ -38,7 +38,8 @@ public class SRealityController {
 //        scrapeAndExport(Constants.URL.OSTRAVA);
 //        scrapeAndExport(Constants.URL.PISEK);
 //        scrapeAndExport(Constants.URL.PRAHA);
-        scrapeAndExport(Constants.URL.ALL);
+//        scrapeAndExport(Constants.URL.ALL);
+        scrapeAndExport(Constants.URL.LITOMERICE);
     }
 
     private void scrapeAndExport(String cityURL) {
@@ -52,7 +53,7 @@ public class SRealityController {
         wd.get(cityURL);
         LOGGER.debug("Checking pagination.");
         waitUntilClassFound("property-list");
-        int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", ""));
+        int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
         int numberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
         LOGGER.debug("Found {} pages to go through.", numberOfPages);
 

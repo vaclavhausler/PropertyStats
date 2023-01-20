@@ -1,7 +1,6 @@
 package com.vhausler.ps.util;
 
 import com.google.gson.Gson;
-import com.vhausler.ps.model.Constants;
 import com.vhausler.ps.model.Property;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;

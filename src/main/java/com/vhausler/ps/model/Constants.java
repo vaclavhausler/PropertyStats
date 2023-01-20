@@ -35,5 +35,6 @@ public class Constants {
         public static final String PRIBRAM = BASE_URL + "pribram";
         public static final String OSTRAVA = BASE_URL + "ostrava";
         public static final String PISEK = BASE_URL + "pisek";
+        public static final String LITOMERICE = BASE_URL + "litomerice";
     }
 }

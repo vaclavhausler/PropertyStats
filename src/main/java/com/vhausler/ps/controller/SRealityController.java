@@ -41,7 +41,7 @@ public class SRealityController {
         increaseResultSize();
 
         // scrape data
-        scrapeAndExport(Constants.URL.LITOMERICE);
+        scrapeAndExport(Constants.URL.OSTRAVA);
     }
 
     /**

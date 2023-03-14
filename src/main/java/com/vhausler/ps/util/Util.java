@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -48,8 +50,10 @@ public class Util {
      */
     @SuppressWarnings("UnusedReturnValue") // future plans
     public static File exportResults(List<Property> properties, String fileName) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd");
+        String date = "_" + sdf.format(new Date());
         String[] split = fileName.split("/");
-        fileName = split[split.length - 1] + ".xlsx";
+        fileName = split[split.length - 1] + date + ".xlsx";
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("sreality.cz properties");
 
@@ -57,7 +61,8 @@ public class Util {
             int rowIndex = 0;
             Row headerRow = sheet.createRow(rowIndex++);
             int cellIndex = 0;
-            for (Field declaredField : Property.class.getDeclaredFields()) {
+            Field[] headers = Property.class.getDeclaredFields();
+            for (Field declaredField : headers) {
                 Cell cell = headerRow.createCell(cellIndex++);
                 cell.setCellValue(declaredField.getName());
             }
@@ -75,6 +80,11 @@ public class Util {
                         cell.setCellValue(declaredField.get(property).toString());
                     }
                 }
+            }
+
+            // autosize columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
             }
 
             FileOutputStream fos;

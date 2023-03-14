@@ -91,6 +91,7 @@ public class Util {
             fos = new FileOutputStream(fileName);
             wb.write(fos);
             fos.close();
+            LOGGER.debug("File saved as: {}.", fileName);
             return new File(fileName);
         } catch (Exception e) {
             LOGGER.error("Exception", e);

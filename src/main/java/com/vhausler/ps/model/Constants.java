@@ -8,6 +8,8 @@ public class Constants {
         throw new IllegalStateException("Class doesn't support instantiation."); // NOSONAR
     }
 
+    public static final String RESULTS_FOLDER = "results";
+
     /**
      * Contains cookie related constants.
      */
@@ -44,11 +46,25 @@ public class Constants {
         /**
          * Leads to all property offers for the whole country.
          */
-        public static final String ALL = BASE_URL + "";
-        public static final String PRAHA = BASE_URL + "praha";
-        public static final String PRIBRAM = BASE_URL + "pribram";
-        public static final String OSTRAVA = BASE_URL + "ostrava";
-        public static final String PISEK = BASE_URL + "pisek";
-        public static final String LITOMERICE = BASE_URL + "litomerice";
+        public static final String ALL = ""; // = base URL
+        public static final String JIHOCESKY_KRAJ = "jihocesky-kraj";
+        public static final String JIHOMORAVSKY_KRAJ = "jihomoravsky-kraj";
+        public static final String KARLOVARSKY_KRAJ = "karlovarsky-kraj";
+        public static final String KRALOVEHRADECKY_KRAJ = "kralovehradecky-kraj";
+        public static final String LIBERECKY_KRAJ = "liberecky-kraj";
+        public static final String MORAVSKOSLEZSKY_KRAJ = "moravskoslezsky-kraj";
+        public static final String OLOMOUCKY_KRAJ = "olomoucky-kraj";
+        public static final String PARDUBICKY_KRAJ = "pardubicky-kraj";
+        public static final String PLZENSKY_KRAJ = "plzensky-kraj";
+        public static final String STREDOCESKY_KRAJ = "stredocesky-kraj";
+        public static final String USTECKY_KRAJ = "ustecky-kraj";
+        public static final String VYSOCINA_KRAJ = "vysocina-kraj";
+        public static final String ZLINSKY_KRAJ = "zlinsky-kraj";
+        public static final String LITOMERICE = "litomerice";
+        public static final String LOUNY = "louny";
+        public static final String OSTRAVA = "ostrava";
+        public static final String PISEK = "pisek";
+        public static final String PRAHA = "praha";
+        public static final String PRIBRAM = "pribram";
     }
 }

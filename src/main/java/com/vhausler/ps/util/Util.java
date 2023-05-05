@@ -1,6 +1,7 @@
 package com.vhausler.ps.util;
 
 import com.google.gson.Gson;
+import com.vhausler.ps.model.Constants;
 import com.vhausler.ps.model.Property;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -50,10 +51,19 @@ public class Util {
      */
     @SuppressWarnings("UnusedReturnValue") // future plans
     public static File exportResults(List<Property> properties, String fileName) {
+        File file = new File(Constants.RESULTS_FOLDER);
+        if (!file.exists() || !file.isDirectory()) {
+            boolean mkdir = file.mkdir();
+            if (!mkdir) {
+                throw new IllegalStateException("Failed to create the results directory.");
+            }
+        }
+
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd");
         String date = "_" + sdf.format(new Date());
         String[] split = fileName.split("/");
         fileName = split[split.length - 1] + date + ".xlsx";
+        fileName = Constants.RESULTS_FOLDER + File.separator + fileName;
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("sreality.cz properties");
 

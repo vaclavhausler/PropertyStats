@@ -4,24 +4,26 @@ import com.vhausler.ps.model.Constants;
 import com.vhausler.ps.model.Property;
 import com.vhausler.ps.util.Util;
 import io.opentelemetry.api.internal.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.vhausler.ps.model.Constants.URL.BASE_URL;
+
 /**
  * Main runnable class which handles scraping of <a href="https://www.sreality.cz/">sreality.cz</a> website.
  */
+@Slf4j
 public class SRealityController {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SRealityController.class);
     private WebDriver wd;
 
     public static void main(String[] args) {
@@ -34,14 +36,50 @@ public class SRealityController {
      */
     public void start() {
         // driver setup
-        wd = new FirefoxDriver();
+        FirefoxOptions options = new FirefoxOptions();
+        options.setHeadless(true);
+        wd = new FirefoxDriver(options);
 
         // page properties
         dealWithCookies();
         increaseResultSize();
 
+        // controls
+        boolean custom = false;
+        boolean all = false;
+        boolean kraje = false;
+
+        if (custom) {
+            scrapeAndExport(Constants.URL.PRIBRAM);
+            scrapeAndExport(Constants.URL.LITOMERICE);
+            scrapeAndExport(Constants.URL.PRAHA);
+            scrapeAndExport(Constants.URL.PISEK);
+            scrapeAndExport(Constants.URL.LOUNY);
+        }
+
+        scrapeAndExport(Constants.URL.OSTRAVA);
+
         // scrape data
-        scrapeAndExport(Constants.URL.ALL);
+        if (all) {
+            scrapeAndExport(Constants.URL.ALL);
+        }
+
+        // KRAJE
+        if (kraje) {
+            scrapeAndExport(Constants.URL.JIHOCESKY_KRAJ);
+            scrapeAndExport(Constants.URL.JIHOMORAVSKY_KRAJ);
+            scrapeAndExport(Constants.URL.KARLOVARSKY_KRAJ);
+            scrapeAndExport(Constants.URL.KRALOVEHRADECKY_KRAJ);
+            scrapeAndExport(Constants.URL.LIBERECKY_KRAJ);
+            scrapeAndExport(Constants.URL.MORAVSKOSLEZSKY_KRAJ);
+            scrapeAndExport(Constants.URL.OLOMOUCKY_KRAJ);
+            scrapeAndExport(Constants.URL.PARDUBICKY_KRAJ);
+            scrapeAndExport(Constants.URL.PLZENSKY_KRAJ);
+            scrapeAndExport(Constants.URL.STREDOCESKY_KRAJ);
+            scrapeAndExport(Constants.URL.USTECKY_KRAJ);
+            scrapeAndExport(Constants.URL.VYSOCINA_KRAJ);
+            scrapeAndExport(Constants.URL.ZLINSKY_KRAJ);
+        }
     }
 
     /**
@@ -51,7 +89,7 @@ public class SRealityController {
      */
     @SuppressWarnings("SameParameterValue")
     private void scrapeAndExport(String cityURL) {
-        List<Property> allProperties = process(cityURL);
+        List<Property> allProperties = process(BASE_URL + cityURL);
         Util.exportResults(allProperties, cityURL);
     }
 
@@ -64,23 +102,23 @@ public class SRealityController {
      */
     private List<Property> process(String cityURL) {
         // check pagination
-        LOGGER.debug("Navigating to {}.", cityURL);
+        log.debug("Navigating to {}.", cityURL);
         wd.get(cityURL);
-        LOGGER.debug("Checking pagination.");
+        log.debug("Checking pagination.");
         waitUntilClassFound("property-list"); // NOSONAR
         int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
         int numberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
-        LOGGER.debug("Found {} pages to go through.", numberOfPages);
+        log.debug("Found {} pages to go through.", numberOfPages);
 
         // scrape data
         List<Property> allProperties = new ArrayList<>();
         for (int i = 1; i <= numberOfPages; i++) {
             String currentCityURL = cityURL + Constants.URL.PAGINATION + i;
-            LOGGER.debug("Navigating to {}.", currentCityURL);
+            log.debug("Navigating to {}.", currentCityURL);
             wd.get(currentCityURL);
             waitUntilClassFound("property-list");
             List<WebElement> properties = wd.findElements(By.className("property"));
-            LOGGER.debug("Found {} properties.", properties.size());
+            log.debug("Found {} properties on page {}.", properties.size(), i);
             for (WebElement property : properties) {
                 WebElement info = property.findElement(By.className("info"));
                 String title = info.findElement(By.className("title")).getText().replaceAll(" ", " "); // NOSONAR
@@ -103,10 +141,10 @@ public class SRealityController {
      * so there could be a workaround and a potential perf improvement for this.
      */
     private void increaseResultSize() {
-        LOGGER.debug("Increasing result size.");
+        log.debug("Increasing result size.");
 
         // navigate to a site with results
-        wd.get(Constants.URL.PRIBRAM);
+        wd.get(BASE_URL + Constants.URL.PRIBRAM);
         waitUntilClassFound("property-list");
 
         // increase the result size
@@ -114,7 +152,7 @@ public class SRealityController {
         WebElement perPageSelect = waitUntilClassFound("per-page-select");
         perPageSelect.findElement(By.className("options")).findElement(By.cssSelector("li:last-of-type")).findElement(By.cssSelector("button")).click();
 
-        LOGGER.debug("Done increasing result size.");
+        log.debug("Done increasing result size.");
     }
 
     /**
@@ -144,11 +182,11 @@ public class SRealityController {
      * @return an element found by its class name
      */
     private WebElement waitUntilClassFound(String className) {
-        LOGGER.debug("Waiting for element found by class name: '{}', to be present and to contain any text.", className);
+        log.trace("Waiting for element found by class name: '{}', to be present and to contain any text.", className);
         while (true) {
             WebElement element = wd.findElement(By.className(className));
             if (!StringUtils.isNullOrEmpty(element.getText())) {
-                LOGGER.debug("Element with class name: '{}' found.", className);
+                log.trace("Element with class name: '{}' found.", className);
                 return element;
             }
             try {
@@ -181,13 +219,13 @@ public class SRealityController {
      * avoiding ugly redirect to <a href="https://www.seznam.cz">seznam.cz</a> where the actual consent form is located.
      */
     private void dealWithCookies() {
-        LOGGER.debug("Dealing with cookies.");
+        log.debug("Dealing with cookies.");
         Cookie consentCookie = Util.getCookie(Constants.Cookie.CONSENT);
-        LOGGER.trace("Navigating to domain.");
-        wd.get(Constants.URL.BASE_URL + "/404");
+        log.trace("Navigating to domain.");
+        wd.get(BASE_URL + "/404");
         wd.manage().deleteAllCookies();
-        LOGGER.trace("Adding cookie.");
+        log.trace("Adding cookie.");
         wd.manage().addCookie(consentCookie);
-        LOGGER.debug("Done dealing with cookies.");
+        log.debug("Done dealing with cookies.");
     }
 }

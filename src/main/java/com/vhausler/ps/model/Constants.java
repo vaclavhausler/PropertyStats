@@ -1,5 +1,8 @@
 package com.vhausler.ps.model;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Model class which holds all the constants.
  */
@@ -47,6 +50,9 @@ public class Constants {
          * Leads to all property offers for the whole country.
          */
         public static final String ALL = ""; // = base URL
+    }
+
+    public static class CITY {
         public static final String JIHOCESKY_KRAJ = "jihocesky-kraj";
         public static final String JIHOMORAVSKY_KRAJ = "jihomoravsky-kraj";
         public static final String KARLOVARSKY_KRAJ = "karlovarsky-kraj";
@@ -66,5 +72,37 @@ public class Constants {
         public static final String PISEK = "pisek";
         public static final String PRAHA = "praha";
         public static final String PRIBRAM = "pribram";
+        public static final String PRAHA_1 = "praha-1";
+        public static final String PRAHA_2 = "praha-2";
+        public static final String PRAHA_3 = "praha-3";
+        public static final String PRAHA_4 = "praha-4";
+        public static final String PRAHA_5 = "praha-5";
+        public static final String PRAHA_6 = "praha-6";
+        public static final String PRAHA_7 = "praha-7";
+        public static final String PRAHA_8 = "praha-8";
+        public static final String PRAHA_9 = "praha-9";
+        public static final String PRAHA_10 = "praha-10";
+        public static final String BRNO = "brno";
+        public static final String KARLOVY_VARY = "karlovy-vary";
+        public static final String PLZEN = "plzen";
+        public static final String USTI_NAD_LABEM = "usti-nad-labem";
+        public static final String LIBEREC = "liberec";
+        public static final String HRADEC_KRALOVE = "hradec-kralove";
+        public static final String CESKE_BUDEJOVICE = "ceske-budejovice";
+        public static final String JIHLAVA = "jihlava";
+        public static final String PARDUBICE = "pardubice";
+        public static final String OLOMOUC = "olomouc";
+        public static final String ZLIN = "zlin";
+        public static final String BENESOV = "benesov";
+
+        public static List<String> getAll() {
+            return Arrays.stream(CITY.class.getFields()).map(field -> {
+                try {
+                    return (String) field.get(null);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toList();
+        }
     }
 }

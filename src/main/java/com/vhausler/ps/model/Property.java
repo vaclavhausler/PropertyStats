@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -14,4 +15,5 @@ public class Property {
     private Integer pricePerSquareMeter;
     private Date createdAt;
     private String link;
+    private Map<String, String> params;
 }

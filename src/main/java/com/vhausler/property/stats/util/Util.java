@@ -1,8 +1,8 @@
-package com.vhausler.ps.util;
+package com.vhausler.property.stats.util;
 
 import com.google.gson.Gson;
-import com.vhausler.ps.model.Constants;
-import com.vhausler.ps.model.Property;
+import com.vhausler.property.stats.model.Constants;
+import com.vhausler.property.stats.model.Property;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;

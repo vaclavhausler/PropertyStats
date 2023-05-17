@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.17.xsd">
+
+    <!--
+    Any data required for project initialization including their updates go in here. Do not create or update structures here.
+    This file can also use spring properties to load sql init file from elsewhere in case of per environment init data or other similar use cases.
+    Note: split this changelog into create/update in the rare case it gets too cluttered.
+    -->
+    <changeSet id="populate-default-location-data" author="vhausler">
+        <!--regions-->
+        <insert tableName="location">
+            <column name="id" value="JIHOCESKY_KRAJ"/>
+            <column name="value" value="jihocesky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="JIHOMORAVSKY_KRAJ"/>
+            <column name="value" value="jihomoravsky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="KARLOVARSKY_KRAJ"/>
+            <column name="value" value="karlovarsky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="KRALOVEHRADECKY_KRAJ"/>
+            <column name="value" value="kralovehradecky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="LIBERECKY_KRAJ"/>
+            <column name="value" value="liberecky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="MORAVSKOSLEZSKY_KRAJ"/>
+            <column name="value" value="moravskoslezsky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="OLOMOUCKY_KRAJ"/>
+            <column name="value" value="olomoucky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PARDUBICKY_KRAJ"/>
+            <column name="value" value="pardubicky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PLZENSKY_KRAJ"/>
+            <column name="value" value="plzensky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="STREDOCESKY_KRAJ"/>
+            <column name="value" value="stredocesky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="USTECKY_KRAJ"/>
+            <column name="value" value="ustecky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="VYSOCINA_KRAJ"/>
+            <column name="value" value="vysocina-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="ZLINSKY_KRAJ"/>
+            <column name="value" value="zlinsky-kraj"/>
+            <column name="region" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA"/>
+            <column name="value" value="praha"/>
+            <column name="region" value="true"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+
+        <!--regional cities-->
+        <insert tableName="location">
+            <column name="id" value="OSTRAVA"/>
+            <column name="value" value="ostrava"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="BRNO"/>
+            <column name="value" value="brno"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="KARLOVY_VARY"/>
+            <column name="value" value="karlovy-vary"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PLZEN"/>
+            <column name="value" value="plzen"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="USTI_NAD_LABEM"/>
+            <column name="value" value="usti-nad-labem"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="LIBEREC"/>
+            <column name="value" value="liberec"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="HRADEC_KRALOVE"/>
+            <column name="value" value="hradec-kralove"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="CESKE_BUDEJOVICE"/>
+            <column name="value" value="ceske-budejovice"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="JIHLAVA"/>
+            <column name="value" value="jihlava"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PARDUBICE"/>
+            <column name="value" value="pardubice"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="OLOMOUC"/>
+            <column name="value" value="olomouc"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="ZLIN"/>
+            <column name="value" value="zlin"/>
+            <column name="regional_city" value="true"/>
+            <column name="city" value="true"/>
+        </insert>
+
+        <!--cities-->
+        <insert tableName="location">
+            <column name="id" value="BENESOV"/>
+            <column name="value" value="benesov"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="LITOMERICE"/>
+            <column name="value" value="litomerice"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="LOUNY"/>
+            <column name="value" value="louny"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PISEK"/>
+            <column name="value" value="pisek"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRIBRAM"/>
+            <column name="value" value="pribram"/>
+            <column name="city" value="true"/>
+        </insert>
+
+        <insert tableName="location">
+            <column name="id" value="PRAHA_1"/>
+            <column name="value" value="praha-1"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_2"/>
+            <column name="value" value="praha-2"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_3"/>
+            <column name="value" value="praha-3"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_4"/>
+            <column name="value" value="praha-4"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_5"/>
+            <column name="value" value="praha-5"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_6"/>
+            <column name="value" value="praha-6"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_7"/>
+            <column name="value" value="praha-7"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_8"/>
+            <column name="value" value="praha-8"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_9"/>
+            <column name="value" value="praha-9"/>
+            <column name="city" value="true"/>
+        </insert>
+        <insert tableName="location">
+            <column name="id" value="PRAHA_10"/>
+            <column name="value" value="praha-10"/>
+            <column name="city" value="true"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

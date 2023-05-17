@@ -1,6 +1,6 @@
 How does it work?
 
-- com.vhausler.ps.controller.SRealityController can be run and based on the parameters in its start method it scrapes property prices for different cities (or even the whole country). There's no jar with dependencies and such, it's run from
+- controller.com.vhausler.property.stats.SRealityController can be run and based on the parameters in its start method it scrapes property prices for different cities (or even the whole country). There's no jar with dependencies and such, it's run from
   the IDE at the moment.
 - Loads a page with 404 result to work its way around consent cookies.
 - Loads a random page with results (waits for them dynamically, common theme for all) to adjust the result size from 20 to 60 per page (faster scraping).

@@ -1,9 +1,9 @@
-package com.vhausler.ps.controller;
+package com.vhausler.property.stats.controller;
 
-import com.vhausler.ps.model.Constants;
-import com.vhausler.ps.model.DriverWrapper;
-import com.vhausler.ps.model.Property;
-import com.vhausler.ps.util.Util;
+import com.vhausler.property.stats.model.Constants;
+import com.vhausler.property.stats.model.DriverWrapper;
+import com.vhausler.property.stats.model.Property;
+import com.vhausler.property.stats.util.Util;
 import io.opentelemetry.api.internal.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
@@ -12,15 +12,13 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-import static com.vhausler.ps.model.Constants.CITY.*;
-import static com.vhausler.ps.model.Constants.URL.ALL;
-import static com.vhausler.ps.model.Constants.URL.BASE_URL;
 import static org.apache.logging.log4j.util.Strings.isEmpty;
 
 /**
@@ -32,7 +30,7 @@ public class SRealityController {
     private List<DriverWrapper> drivers;
 
     public static final boolean HEADLESS = false;
-    public static final long DRIVER_TIMEOUT_IN_SEC = 30;
+    public static final long DRIVER_TIMEOUT_IN_SEC = 300000000;
 
     public static void main(String[] args) {
         System.setProperty(FirefoxDriver.SystemProperty.BROWSER_LOGFILE, "/dev/null"); // turn off logging
@@ -60,52 +58,52 @@ public class SRealityController {
         // scrape data
         boolean start = false;
         if (all) {
-            List<String> cities = getAll();
+            List<String> cities = Constants.CITY.getAll();
             for (String city : cities) {
-                if (KARLOVARSKY_KRAJ.equals(city)) {
+                if (Constants.CITY.STREDOCESKY_KRAJ.equals(city)) {
                     start = true;
                 }
                 if (start) {
                     scrapeAndExport(getAvailableDriver(), city);
                 }
             }
-            scrapeAndExport(getAvailableDriver(), ALL);
+            scrapeAndExport(getAvailableDriver(), Constants.URL.ALL);
         }
 
         if (custom) {
-            scrapeAndExport(getAvailableDriver(), PRIBRAM);
-            scrapeAndExport(getAvailableDriver(), OSTRAVA);
-            scrapeAndExport(getAvailableDriver(), LITOMERICE);
-            scrapeAndExport(getAvailableDriver(), PISEK);
-            scrapeAndExport(getAvailableDriver(), LOUNY);
-            scrapeAndExport(getAvailableDriver(), PRAHA);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRIBRAM);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.OSTRAVA);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.LITOMERICE);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PISEK);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.LOUNY);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA);
         }
 
         // KRAJE
         if (kraje) {
-            scrapeAndExport(getAvailableDriver(), JIHOCESKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), JIHOMORAVSKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), KARLOVARSKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), KRALOVEHRADECKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), LIBERECKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), MORAVSKOSLEZSKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), OLOMOUCKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), PARDUBICKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), PLZENSKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), STREDOCESKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), USTECKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), VYSOCINA_KRAJ);
-            scrapeAndExport(getAvailableDriver(), ZLINSKY_KRAJ);
-            scrapeAndExport(getAvailableDriver(), PRAHA_1);
-            scrapeAndExport(getAvailableDriver(), PRAHA_2);
-            scrapeAndExport(getAvailableDriver(), PRAHA_3);
-            scrapeAndExport(getAvailableDriver(), PRAHA_4);
-            scrapeAndExport(getAvailableDriver(), PRAHA_5);
-            scrapeAndExport(getAvailableDriver(), PRAHA_6);
-            scrapeAndExport(getAvailableDriver(), PRAHA_7);
-            scrapeAndExport(getAvailableDriver(), PRAHA_8);
-            scrapeAndExport(getAvailableDriver(), PRAHA_9);
-            scrapeAndExport(getAvailableDriver(), PRAHA_10);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.JIHOCESKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.JIHOMORAVSKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.KARLOVARSKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.KRALOVEHRADECKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.LIBERECKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.MORAVSKOSLEZSKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.OLOMOUCKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PARDUBICKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PLZENSKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.STREDOCESKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.USTECKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.VYSOCINA_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.ZLINSKY_KRAJ);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_1);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_2);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_3);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_4);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_5);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_6);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_7);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_8);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_9);
+            scrapeAndExport(getAvailableDriver(), Constants.CITY.PRAHA_10);
         }
 
 
@@ -160,7 +158,7 @@ public class SRealityController {
     @SuppressWarnings("SameParameterValue")
     private void scrapeAndExport(DriverWrapper driverWrapper, String cityURL) {
         Instant start = Instant.now();
-        List<Property> allProperties = scrapeProperties(driverWrapper, BASE_URL + cityURL);
+        List<Property> allProperties = scrapeProperties(driverWrapper, Constants.URL.BASE_URL + cityURL);
         Util.exportResults(allProperties, cityURL);
         Instant stop = Instant.now();
         Duration dur = Duration.between(start, stop);
@@ -179,8 +177,9 @@ public class SRealityController {
         // check pagination
         log.debug("Navigating to {}.", cityURL);
         wd.get(cityURL);
+        customWait(500);
         log.trace("Checking pagination.");
-        waitUntilClassFound(wd, "property-list"); // NOSONAR
+        waitUntilElementFound(wd, By.className("property-list"));
         int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
         int totalNumberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
         log.debug("Found {} pages to go through.", totalNumberOfPages);
@@ -194,29 +193,35 @@ public class SRealityController {
 
         // scrape page data
         List<Property> allProperties = new ArrayList<>();
-//        List<CompletableFuture<Void>> propertyFutures = new ArrayList<>();
         for (int i = 0; i < allPageLinks.size(); i++) {
             String pageLink = allPageLinks.get(i);
-//            int finalI = i;
-//            propertyFutures.add(CompletableFuture.runAsync(() -> scrapePageData(getAvailableDriver(), pageLink, finalI, totalNumberOfPages, allProperties)));
             scrapePageData(driverWrapper, pageLink, i, totalNumberOfPages, allProperties);
         }
-//        propertyFutures.forEach(CompletableFuture::join);
 
         // scrape property parameters
         log.debug("Going through {} properties to fetch their parameters.", allProperties.size());
-//        List<CompletableFuture<Void>> propertyParamsFutures = new ArrayList<>();
         int done = 0;
         for (Property property : allProperties) {
-//            propertyParamsFutures.add(CompletableFuture.runAsync(() -> scrapePropertyParams(getAvailableDriver(), property)));
-            scrapePropertyParams(driverWrapper, property);
+            DriverWrapper finalDriverWrapper = driverWrapper;
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> scrapePropertyParams(finalDriverWrapper, property));
+            try {
+                future.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) { // NOSONAR
+                log.debug("Timeout waiting for property params page to load, skipping.");
+                try {
+                    wd.navigate().refresh();
+                    customWait(1000);
+                } catch (Exception e2) {
+                    // possible timeout exception when the browser dies
+                    log.debug("Refresh failed, refresh manually.");
+                }
+            }
             done++;
-            if (done % 100 == 0) {
+            if (done % 20 == 0) {
                 log.debug("Finished scraping {}/{} property params for {}.", done, allProperties.size(), cityURL);
             }
         }
         log.debug("Finished scraping {}/{} property params for {}.", done, allProperties.size(), cityURL);
-//        propertyParamsFutures.forEach(CompletableFuture::join);
 
         return allProperties;
     }
@@ -225,7 +230,8 @@ public class SRealityController {
         log.trace("Navigating to {}.", pageLink);
         WebDriver wd = driverWrapper.getWd();
         wd.get(pageLink);
-        waitUntilClassFound(wd, "property-list");
+        customWait(500);
+        waitUntilElementFound(wd, By.className("property-list"));
         List<WebElement> properties = wd.findElements(By.className("property"));
         if (properties.isEmpty()) {
             log.debug("Found 0 properties, re-scraping page data.");
@@ -252,27 +258,27 @@ public class SRealityController {
         try {
             // extra params on property detail
             WebDriver wd = driverWrapper.getWd();
+            log.trace("Scraping property params from: {}.", property.getLink());
             wd.get(property.getLink());
+            customWait(500);
             WebElement propertyTitleElement = waitUntilElementFound(wd, By.cssSelector("div[class='property-title']"));
             if (propertyTitleElement != null) {
-                String propertyTitle = propertyTitleElement.getText();
-                while (!(propertyTitle.contains(property.getTitle()) && propertyTitle.contains(property.getAddress()))) {
-                    customWait(100);
-                    log.debug("{}", propertyTitle);
-                }
-                WebElement propertyDetail = waitUntilElementFound(wd, By.cssSelector("div[class='params clear']"));
-                if (propertyDetail != null) {
-                    WebElement params1 = waitUntilClassFound(wd, "params1");
-                    WebElement params2 = waitUntilClassFound(wd, "params2");
-                    Map<String, String> propertyParams = new HashMap<>();
+                WebElement params1 = waitUntilElementFound(wd, By.className("params1"));
+                WebElement params2 = waitUntilElementFound(wd, By.className("params2"));
+                Map<String, String> propertyParams = new HashMap<>();
+                if (params1 != null) {
                     propertyParams.putAll(scrapeParams(params1));
-                    propertyParams.putAll(scrapeParams(params2));
-                    property.setParams(propertyParams);
                 }
+                if (params2 != null) {
+                    propertyParams.putAll(scrapeParams(params2));
+                }
+                property.setParams(propertyParams);
+            } else {
+                log.debug("Timeout waiting for property params page to load, skipping.");
             }
-        } catch (Exception e) {
-            log.trace("Exception scraping property params from link: {}. {}.", property.getLink(), e.getMessage());
-            scrapePropertyParams(driverWrapper, property);
+        } catch (Exception e) { // NOSONAR
+            // ignore, continue further
+            log.debug("Exception (skipping) scraping property params from link: {}.", property.getLink());
         }
         log.trace("Finished scraping property params from link: {}.", property.getLink());
         driverWrapper.setAvailable(true);
@@ -281,7 +287,7 @@ public class SRealityController {
     private void customWait(long timeInMillis) {
         try {
             Thread.sleep(timeInMillis);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e) { // NOSONAR
             // ignore
         }
     }
@@ -298,14 +304,18 @@ public class SRealityController {
             String value = strong.getText();
             if (isEmpty(value)) {
                 // most likely boolean value
-                WebElement icon = strong.findElement(By.className("icof"));
-                String booleanAttribute = icon.getAttribute("ng-if");
-                if ("item.type == 'boolean-false'".equals(booleanAttribute)) {
-                    value = "false";
-                } else if ("item.type == 'boolean-true'".equals(booleanAttribute)) {
-                    value = "true";
-                } else {
-                    log.error("Expected a boolean attribute, but was something else: '{}'", booleanAttribute);
+                try {
+                    WebElement icon = strong.findElement(By.className("icof"));
+                    String booleanAttribute = icon.getAttribute("ng-if");
+                    if ("item.type == 'boolean-false'".equals(booleanAttribute)) {
+                        value = "false";
+                    } else if ("item.type == 'boolean-true'".equals(booleanAttribute)) {
+                        value = "true";
+                    } else {
+                        log.error("Expected a boolean attribute, but was something else: '{}'", booleanAttribute);
+                    }
+                } catch (Exception e) {
+                    // ignore, can happen when there's really a missing value in the column
                 }
             }
             result.put(key, value);
@@ -321,12 +331,13 @@ public class SRealityController {
         log.trace("Increasing result size.");
 
         // navigate to a site with results
-        wd.get(BASE_URL + PRIBRAM);
-        waitUntilClassFound(wd, "property-list");
+        wd.get(Constants.URL.BASE_URL + Constants.CITY.PRIBRAM);
+        customWait(500);
+        waitUntilElementFound(wd, By.className("property-list"));
 
         // increase the result size
         wd.findElement(By.className("per-page")).findElement(By.cssSelector("span[list-select='listSelectConf'")).click();
-        WebElement perPageSelect = waitUntilClassFound(wd, "per-page-select");
+        WebElement perPageSelect = waitUntilElementFound(wd, By.className("per-page-select"));
         perPageSelect.findElement(By.className("options")).findElement(By.cssSelector("li:last-of-type")).findElement(By.cssSelector("button")).click();
 
         log.trace("Done increasing result size.");
@@ -350,43 +361,39 @@ public class SRealityController {
         return null;
     }
 
-    /**
-     * Dynamically waits until an element with a specific class name shows up on the page. Solves the issue of async data loading.
-     * Workaround for {@link WebDriverWait} which I could never rely on. Intentionally set up as an endless loop in case anything breaks,
-     * as the scraper would keep waiting and dev can easily debug the issue as they still have access to the page and see what happened.
-     *
-     * @param className used for lookup
-     * @return an element found by its class name
-     */
-    private WebElement waitUntilClassFound(WebDriver wd, String className) {
-        return waitUntilElementFound(wd, By.className(className));
-    }
-
-    private WebElement waitUntilElementFound(WebDriver wd, By by) {
+    private WebElement waitUntilElementFound(WebDriver wd, By by) { // NOSONAR
         log.trace("Waiting for element found by: '{}', to be present and to contain any text.", by);
-        while (true) {
-            try {
-                WebElement element = wd.findElement(by);
-                if (!StringUtils.isNullOrEmpty(element.getText())) {
-                    log.trace("Element '{}' found.", by);
-                    return element;
-                }
-            } catch (Exception e) {
-                // ignore not found exception
+        CompletableFuture<WebElement> future = CompletableFuture.supplyAsync(() -> {
+            while (true) {
                 try {
-                    String errorDescription = wd.findElement(By.className("error-description")).getText();
-                    if ("Je mi líto, inzerát neexistuje.".equals(errorDescription)) {
-                        return null;
+                    WebElement element = wd.findElement(by);
+                    if (!StringUtils.isNullOrEmpty(element.getText())) {
+                        log.trace("Element '{}' found.", by);
+                        return element;
                     }
-                } catch (Exception e2) {
+                } catch (Exception e) {
                     // ignore not found exception
+                    try {
+                        String errorDescription = wd.findElement(By.className("error-description")).getText();
+                        if ("Je mi líto, inzerát neexistuje.".equals(errorDescription)) {
+                            return null;
+                        }
+                    } catch (Exception e2) {
+                        // ignore not found exception
+                    }
+                    log.debug("Element {} not found, waiting.", by);
+                    customWait(500);
                 }
-                log.trace("Element {} not found, waiting.", by);
-                wd.navigate().refresh();
                 customWait(100);
             }
-            customWait(100);
+        });
+        try {
+            return future.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) { // NOSONAR
+            // ignore
+            log.debug("Timeout waiting for element: {}", by);
         }
+        return null;
     }
 
     /**
@@ -413,9 +420,9 @@ public class SRealityController {
         log.trace("Dealing with cookies.");
         Cookie consentCookie = Util.getCookie(Constants.Cookie.CONSENT);
         log.trace("Navigating to domain.");
-        wd.get(BASE_URL + "/404");
+        wd.get(Constants.URL.BASE_URL + "/404");
         customWait(2000);
-        wd.get(BASE_URL + "/404");
+        wd.get(Constants.URL.BASE_URL + "/404");
         waitUntilElementFound(wd, By.className("error-description"));
         wd.manage().deleteAllCookies();
         log.trace("Adding cookie.");

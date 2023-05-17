@@ -1,5 +1,6 @@
-package com.vhausler.ps.model;
+package com.vhausler.property.stats.model;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
@@ -103,6 +104,23 @@ public class Constants {
                     throw new RuntimeException(e);
                 }
             }).toList();
+        }
+
+        public static void main(String[] args) throws IllegalAccessException {
+            String template = """
+                            <insert tableName="location">
+                                <column name="id" value="$1"/>
+                                <column name="value" value="$2"/>
+                                <column name="region" value=""/>
+                                <column name="regional_city" value=""/>
+                                <column name="city" value=""/>
+                            </insert>
+                    """;
+            Field[] fields = CITY.class.getFields();
+            for (Field field : fields) {
+                String tmp = template.replace("$1", field.getName()).replace("$2", (String) field.get(null));
+                System.out.println(tmp);
+            }
         }
     }
 }

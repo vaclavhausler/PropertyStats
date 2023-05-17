@@ -1,0 +1,21 @@
+logging:
+  level:
+    com.vhausler.property.stats: TRACE
+server:
+  port: 8080
+spring:
+  application:
+    name: property-stats
+  datasource:
+    url: jdbc:postgresql://localhost:5432/property_stats?currentSchema=property_stats&gssEncMode=disable
+    username: postgres
+    password: admin
+  jpa:
+    show-sql: false
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog-master.xml
+    url: jdbc:postgresql://localhost:5432/property_stats?currentSchema=property_stats&gssEncMode=disable
+    default-schema: property_stats
+    user: postgres
+    password: admin

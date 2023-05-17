@@ -1,12 +1,14 @@
-package com.vhausler.ps.model;
+package com.vhausler.property.stats.model;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
 import java.time.Instant;
 
 @Data
+@Slf4j
 public class DriverWrapper {
 
     private static int nameIndex = 0;
@@ -29,6 +31,7 @@ public class DriverWrapper {
     }
 
     public void quit() {
+        log.debug("{} is quitting.", name);
         wd.quit();
     }
 

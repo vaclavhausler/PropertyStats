@@ -1,4 +1,4 @@
-package com.vhausler.ps.model;
+package com.vhausler.property.stats.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

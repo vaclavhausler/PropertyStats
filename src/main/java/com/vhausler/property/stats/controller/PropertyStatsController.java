@@ -16,7 +16,19 @@ public class PropertyStatsController {
 
     @Async
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
-    public void scrapeData() {
-        saleService.scrapeData();
+    public void registerScrapers() {
+        saleService.registerScrapers();
+    }
+
+    @Async
+    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
+    public void scrapeHeaders() {
+        saleService.scrapeHeaders();
+    }
+
+    @Async
+    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
+    public void scrapeParams() {
+        saleService.scrapeParams();
     }
 }

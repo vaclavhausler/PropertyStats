@@ -2,6 +2,7 @@ package com.vhausler.property.stats.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -10,12 +11,14 @@ import java.util.List;
 @Entity
 @Table(name = "scraper_result", schema = "property_stats", catalog = "property_stats")
 public class ScraperResultEntity {
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     @Id
     @Column(name = "id")
-    private int id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ToString.Exclude
+    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
     @JoinColumn(name = "scraper_id", referencedColumnName = "id")
     private ScraperEntity scraperEntity;
 
@@ -27,10 +30,10 @@ public class ScraperResultEntity {
     private String address;
     @Basic
     @Column(name = "price")
-    private int price;
+    private Integer price;
     @Basic
     @Column(name = "price_per_square_meter")
-    private int pricePerSquareMeter;
+    private Integer pricePerSquareMeter;
     @Basic
     @Column(name = "created")
     private Timestamp created;
@@ -38,6 +41,6 @@ public class ScraperResultEntity {
     @Column(name = "link")
     private String link;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "scraperResult")
     private List<ParameterEntity> parameterEntities;
 }

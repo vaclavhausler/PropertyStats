@@ -10,12 +10,13 @@ import java.util.List;
 @Entity
 @Table(name = "scraper", schema = "property_stats", catalog = "property_stats")
 public class ScraperEntity {
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     @Id
     @Column(name = "id")
-    private int id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
     @JoinColumn(name = "location_id", referencedColumnName = "id")
     private LocationEntity locationEntity;
 
@@ -29,6 +30,6 @@ public class ScraperEntity {
     @Column(name = "params_done")
     private Timestamp paramsDone;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "scraperEntity")
     private List<ScraperResultEntity> scraperResultEntities;
 }

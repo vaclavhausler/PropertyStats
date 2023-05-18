@@ -10,21 +10,21 @@
     This changelog is responsible for any kind of structure creation (table, index, view, sequence, procedure). Do not put data init or structure updates in here.
     Note: default nullable setting is database dependent, in our case nullable = true is expected to be the default.
     -->
-    <property name="now" value="now()" dbms="mysql,h2"/>
     <property name="now" value="current_timestamp" dbms="postgresql"/>
+    <property name="now" value="now()" dbms="mysql,h2"/>
     <property name="now" value="sysdate" dbms="oracle"/>
     <property name="now" value="getdate()" dbms="mssql"/>
 
     <changeSet author="vhausler" id="create-base-tables">
         <createTable tableName="location">
-            <column name="id" type="varchar(50)">
+            <column name="id" type="varchar(150)">
                 <constraints
                         primaryKey="true"
                         primaryKeyName="pk_location"
                         nullable="false"
                 />
             </column>
-            <column name="value" type="varchar(50)">
+            <column name="value" type="varchar(150)">
                 <constraints nullable="false"/>
             </column>
             <column name="region" type="boolean" defaultValueBoolean="false">
@@ -39,14 +39,14 @@
         </createTable>
 
         <createTable tableName="scraper">
-            <column name="id" type="integer">
+            <column name="id" type="bigint" autoIncrement="true">
                 <constraints
                         primaryKey="true"
                         primaryKeyName="pk_scraper"
                         nullable="false"
                 />
             </column>
-            <column name="location_id" type="varchar(50)">
+            <column name="location_id" type="varchar(150)">
                 <constraints
                         foreignKeyName="fk_location_id"
                         referencedTableName="location"
@@ -54,7 +54,7 @@
                         nullable="false"
                 />
             </column>
-            <column name="created" type="timestamp" defaultValueDate="${now}">
+            <column name="created" type="timestamp">
                 <constraints nullable="false"/>
             </column>
             <column name="headers_done" type="timestamp"/>
@@ -62,14 +62,14 @@
         </createTable>
 
         <createTable tableName="scraper_result">
-            <column name="id" type="integer">
+            <column name="id" type="bigint" autoIncrement="true">
                 <constraints
                         primaryKey="true"
                         primaryKeyName="pk_scraper_result"
                         nullable="false"
                 />
             </column>
-            <column name="scraper_id" type="integer">
+            <column name="scraper_id" type="bigint">
                 <constraints
                         foreignKeyName="fk_scraper_id"
                         referencedTableName="scraper"
@@ -77,10 +77,10 @@
                         nullable="false"
                 />
             </column>
-            <column name="title" type="varchar(50)">
+            <column name="title" type="varchar(250)">
                 <constraints nullable="false"/>
             </column>
-            <column name="address" type="varchar(50)">
+            <column name="address" type="varchar(250)">
                 <constraints nullable="false"/>
             </column>
             <column name="price" type="integer">
@@ -89,7 +89,7 @@
             <column name="price_per_square_meter" type="integer">
                 <constraints nullable="false"/>
             </column>
-            <column name="created" type="timestamp" defaultValueDate="${now}">
+            <column name="created" type="timestamp">
                 <constraints nullable="false"/>
             </column>
             <column name="link" type="varchar(250)">
@@ -98,14 +98,14 @@
         </createTable>
 
         <createTable tableName="parameter">
-            <column name="id" type="integer">
+            <column name="id" type="bigint" autoIncrement="true">
                 <constraints
                         primaryKey="true"
                         primaryKeyName="pk_parameter"
                         nullable="false"
                 />
             </column>
-            <column name="scraper_result_id" type="integer">
+            <column name="scraper_result_id" type="bigint">
                 <constraints
                         foreignKeyName="fk_scraper_result_id"
                         referencedTableName="scraper_result"

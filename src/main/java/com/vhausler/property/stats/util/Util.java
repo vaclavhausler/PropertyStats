@@ -2,31 +2,347 @@ package com.vhausler.property.stats.util;
 
 import com.google.gson.Gson;
 import com.vhausler.property.stats.model.Constants;
+import com.vhausler.property.stats.model.DriverWrapper;
 import com.vhausler.property.stats.model.Property;
+import com.vhausler.property.stats.model.entity.ParameterEntity;
+import com.vhausler.property.stats.model.entity.ScraperEntity;
+import com.vhausler.property.stats.model.entity.ScraperResultEntity;
+import io.opentelemetry.api.internal.StringUtils;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.logging.log4j.util.Strings.isEmpty;
 
 /**
  * Kitchen sink class for any utility methods.
  */
+@Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Util {
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
 
-    private Util() {
-        throw new IllegalStateException("Class doesn't support instantiation.");
+//    /**
+//     * Scrapes the city url for any properties and exports them into an Excel file with the name of the city.
+//     *
+//     * @param scraperEntity contains link - cityURL like <a href="https://www.sreality.cz/hledani/prodej/byty/pribram">https://www.sreality.cz/hledani/prodej/byty/pribram</a>
+//     */
+//    @SuppressWarnings("SameParameterValue")
+//    public static void scrapeAndExport(DriverWrapper driverWrapper, ScraperEntity scraperEntity) {
+//        String cityURL = scraperEntity.getLocationEntity().getValue();
+//        Instant start = Instant.now();
+//        List<Property> allProperties = scrapeProperties(driverWrapper, scraperEntity);
+//        Util.exportResults(allProperties, cityURL);
+//        Instant stop = Instant.now();
+//        Duration dur = Duration.between(start, stop);
+//        log.debug("Finished processing {} in {} min.", cityURL, dur.toMinutes());
+//    }
+
+    /**
+     * Scrapes the city url for any properties. Uses dynamic waiting to load the property list, understands the pagination and goes through all the pages.
+     * Properties with no prices listed are skipped. Calculates price per square meter based on the square meters in the title and the price.
+     *
+     * @param scraperEntity contains link - cityURL like <a href="https://www.sreality.cz/hledani/prodej/byty/pribram">https://www.sreality.cz/hledani/prodej/byty/pribram</a>
+     */
+    public static void scrapePropertyHeaders(DriverWrapper driverWrapper, ScraperEntity scraperEntity) {
+        WebDriver wd = driverWrapper.getWd();
+        // check pagination
+        String cityURL = Constants.URL.BASE_URL + scraperEntity.getLocationEntity().getValue();
+        log.debug("Navigating to {}.", cityURL);
+        wd.get(cityURL);
+        customWait(500);
+        log.trace("Checking pagination.");
+        waitUntilElementFound(wd, By.className("property-list"));
+        int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
+        int totalNumberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
+        log.debug("Found {} pages to go through.", totalNumberOfPages);
+        driverWrapper.setAvailable(true);
+
+        // get all pages we need to scrape
+        List<String> allPageLinks = new ArrayList<>();
+        for (int i = 1; i <= totalNumberOfPages; i++) {
+            allPageLinks.add(cityURL + Constants.URL.PAGINATION + i);
+        }
+
+        // scrape page data
+        scraperEntity.setScraperResultEntities(new ArrayList<>());
+        for (int i = 0; i < allPageLinks.size(); i++) {
+            String pageLink = allPageLinks.get(i);
+            scrapePageData(driverWrapper, pageLink, i, totalNumberOfPages, scraperEntity);
+        }
+    }
+
+    private static void scrapePageData(DriverWrapper driverWrapper, String pageLink, int index, int numberOfPages, ScraperEntity scraperEntity) {
+        log.trace("Navigating to {}.", pageLink);
+        WebDriver wd = driverWrapper.getWd();
+        wd.get(pageLink);
+        customWait(500);
+        waitUntilElementFound(wd, By.className("property-list"));
+        List<WebElement> properties = wd.findElements(By.className("property"));
+        if (properties.isEmpty()) {
+            log.debug("Found 0 properties, re-scraping page data.");
+            scrapePageData(driverWrapper, pageLink, index, numberOfPages, scraperEntity);
+            return;
+        }
+        log.debug("Found {} properties on page {}/{}: {}.", properties.size(), index + 1, numberOfPages, pageLink);
+        for (WebElement property : properties) {
+            WebElement info = property.findElement(By.className("info"));
+            String title = info.findElement(By.className("title")).getText().replaceAll(" ", " "); // NOSONAR
+            Integer squareMeters = getSquareMeters(title);
+            String address = info.findElement(By.className("locality")).getText().replaceAll(" ", " "); // NOSONAR
+            Integer price = getPrice(info.findElement(By.className("price")).getText());
+            Integer pricePerSquareMeter = squareMeters == null || price == null ? null : price / squareMeters;
+            String link = info.findElement(By.cssSelector("a[class='title']")).getAttribute("href");
+            if (price != null) {
+                ScraperResultEntity scraperResultEntity = new ScraperResultEntity();
+                scraperResultEntity.setScraperEntity(scraperEntity);
+                scraperResultEntity.setTitle(title);
+                scraperResultEntity.setAddress(address);
+                scraperResultEntity.setPrice(price);
+                scraperResultEntity.setPricePerSquareMeter(pricePerSquareMeter);
+                scraperResultEntity.setLink(link);
+                scraperResultEntity.setCreated(getCurrentTimestamp());
+
+                scraperEntity.getScraperResultEntities().add(scraperResultEntity);
+            }
+        }
+        driverWrapper.setAvailable(true);
+    }
+
+    public static void scrapePropertyParams(DriverWrapper driverWrapper, ScraperEntity scraperEntity) {
+        WebDriver wd = driverWrapper.getWd();
+        // scrape property parameters
+        log.debug("Going through {} properties to fetch their parameters.", scraperEntity.getScraperResultEntities().size());
+        int done = 0;
+        for (ScraperResultEntity scraperResultEntity : scraperEntity.getScraperResultEntities()) {
+            DriverWrapper finalDriverWrapper = driverWrapper;
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> scrapePropertyParams(finalDriverWrapper, scraperResultEntity));
+            try {
+                future.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) { // NOSONAR
+                log.debug("Timeout waiting for property params page to load, skipping.");
+                try {
+                    wd.navigate().refresh();
+                    customWait(1000);
+                } catch (Exception e2) {
+                    // possible timeout exception when the browser dies
+                    log.debug("Refresh failed, refresh manually.");
+                }
+            }
+            done++;
+            if (done % 20 == 0) {
+                log.debug("Finished scraping {}/{} property params for {}.", done, scraperEntity.getScraperResultEntities().size(), scraperEntity.getLocationEntity().getId());
+            }
+        }
+        log.debug("Finished scraping {}/{} property params for {}.", done, scraperEntity.getScraperResultEntities().size(), scraperEntity.getLocationEntity().getId());
+    }
+
+    public static void scrapePropertyParams(DriverWrapper driverWrapper, ScraperResultEntity scraperResultEntity) {
+        try {
+            // extra params on property detail
+            WebDriver wd = driverWrapper.getWd();
+            log.trace("Scraping property params from: {}.", scraperResultEntity.getLink());
+            wd.get(scraperResultEntity.getLink());
+            customWait(500);
+            WebElement propertyTitleElement = waitUntilElementFound(wd, By.cssSelector("div[class='property-title']"));
+            if (propertyTitleElement != null) {
+                WebElement params1 = waitUntilElementFound(wd, By.className("params1"));
+                WebElement params2 = waitUntilElementFound(wd, By.className("params2"));
+
+                List<ParameterEntity> parameterEntities = new ArrayList<>();
+                if (params1 != null) {
+                    parameterEntities.addAll(scrapeParams(params1, scraperResultEntity));
+                }
+                if (params2 != null) {
+                    parameterEntities.addAll(scrapeParams(params2, scraperResultEntity));
+                }
+                scraperResultEntity.setParameterEntities(parameterEntities);
+            } else {
+                log.debug("Timeout waiting for property params page to load, skipping.");
+            }
+        } catch (Exception e) { // NOSONAR
+            // ignore, continue further
+            log.debug("Exception (skipping) scraping property params from link: {}.", scraperResultEntity.getLink());
+        }
+        log.trace("Finished scraping property params from link: {}.", scraperResultEntity.getLink());
+        driverWrapper.setAvailable(true);
+    }
+
+    private static List<ParameterEntity> scrapeParams(WebElement params, ScraperResultEntity scraperResultEntity) {
+        List<ParameterEntity> result = new ArrayList<>();
+        List<WebElement> paramParents = params.findElements(By.cssSelector("li"));
+        for (WebElement paramParent : paramParents) {
+            String key = paramParent.findElement(By.cssSelector("label")).getText();
+            if (key.contains(":")) {
+                key = key.replace(":", "");
+            }
+            WebElement strong = paramParent.findElement(By.cssSelector("strong"));
+            String value = strong.getText();
+            if (isEmpty(value)) {
+                // most likely boolean value
+                try {
+                    WebElement icon = strong.findElement(By.className("icof"));
+                    String booleanAttribute = icon.getAttribute("ng-if");
+                    if ("item.type == 'boolean-false'".equals(booleanAttribute)) {
+                        value = "false";
+                    } else if ("item.type == 'boolean-true'".equals(booleanAttribute)) {
+                        value = "true";
+                    } else {
+                        log.error("Expected a boolean attribute, but was something else: '{}'", booleanAttribute);
+                    }
+                } catch (Exception e) {
+                    // ignore, can happen when there's really a missing value in the column
+                }
+            }
+            ParameterEntity parameterEntity = new ParameterEntity();
+            parameterEntity.setKey(key);
+            parameterEntity.setValue(value);
+            parameterEntity.setScraperResult(scraperResultEntity);
+            result.add(parameterEntity);
+        }
+        return result;
+    }
+
+    /**
+     * Attempts to parse the square meters value from the title of the property. Has to be able to handle different types of whitespaces.
+     *
+     * @param title e.g. Prodej bytu 2+1 70 m²
+     * @return parsed square meters value or null if none found
+     */
+    private static Integer getSquareMeters(String title) {
+        title = title.replaceAll(" ", " "); // NOSONAR
+        if (title.contains("m²")) {
+            String[] split = title.split("m²")[0].split(" ");
+            String strValue = split[split.length - 1];
+            if (!StringUtils.isNullOrEmpty(strValue)) {
+                return Integer.parseInt(strValue);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Attempts to parse the price from the string.
+     *
+     * @param price e. g. 2 750 000 Kč
+     * @return the parsed price from the string or null in case anything fails
+     */
+    private static Integer getPrice(String price) {
+        Integer result;
+        try {
+            result = Integer.parseInt(price.replaceAll(" ", "").replaceAll("Kč", "")); // NOSONAR
+        } catch (Exception e) {
+            result = null;
+        }
+        return result;
+    }
+
+    public static WebElement waitUntilElementFound(WebDriver wd, By by) { // NOSONAR
+        log.trace("Waiting for element found by: '{}', to be present and to contain any text.", by);
+        CompletableFuture<WebElement> future = CompletableFuture.supplyAsync(() -> {
+            while (true) {
+                try {
+                    WebElement element = wd.findElement(by);
+                    if (!StringUtils.isNullOrEmpty(element.getText())) {
+                        log.trace("Element '{}' found.", by);
+                        return element;
+                    }
+                } catch (Exception e) {
+                    // ignore not found exception
+                    try {
+                        String errorDescription = wd.findElement(By.className("error-description")).getText();
+                        if ("Je mi líto, inzerát neexistuje.".equals(errorDescription)) {
+                            return null;
+                        }
+                    } catch (Exception e2) {
+                        // ignore not found exception
+                    }
+                    log.debug("Element {} not found, waiting.", by);
+                    customWait(500);
+                }
+                customWait(100);
+            }
+        });
+        try {
+            return future.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) { // NOSONAR
+            // ignore
+            log.debug("Timeout waiting for element: {}", by);
+        }
+        return null;
+    }
+
+    /**
+     * Exception wrapper for Thread#sleep.
+     *
+     * @param timeInMillis wait time in milliseconds
+     */
+    public static void customWait(long timeInMillis) {
+        try {
+            Thread.sleep(timeInMillis);
+        } catch (InterruptedException e) { // NOSONAR
+            // ignore
+        }
+    }
+
+    /**
+     * Adjusts the result size from 20 to 60 per page. Persists through the whole scraping. It's possible that this value is stored in another cookie,
+     * so there could be a workaround and a potential perf improvement for this.
+     */
+    public static void increaseResultSize(WebDriver wd) {
+        log.trace("Increasing result size.");
+
+        // navigate to a site with results
+        wd.get(Constants.URL.BASE_URL + Constants.CITY.PRIBRAM);
+        customWait(500);
+        waitUntilElementFound(wd, By.className("property-list"));
+
+        // increase the result size
+        wd.findElement(By.className("per-page")).findElement(By.cssSelector("span[list-select='listSelectConf'")).click();
+        WebElement perPageSelect = waitUntilElementFound(wd, By.className("per-page-select"));
+        perPageSelect.findElement(By.className("options")).findElement(By.cssSelector("li:last-of-type")).findElement(By.cssSelector("button")).click();
+
+        log.trace("Done increasing result size.");
+    }
+
+    /**
+     * Workaround for GDPR consent via a cookie. Goes to a non-existing website on the domain which we need to add the cookie for
+     * avoiding ugly redirect to <a href="https://www.seznam.cz">seznam.cz</a> where the actual consent form is located.
+     */
+    public static void dealWithCookies(WebDriver wd) {
+        log.trace("Dealing with cookies.");
+        Cookie consentCookie = Util.getCookie(Constants.Cookie.CONSENT);
+        log.trace("Navigating to domain.");
+        wd.get(Constants.URL.BASE_URL + "/404");
+        customWait(2000);
+        wd.get(Constants.URL.BASE_URL + "/404");
+        waitUntilElementFound(wd, By.className("error-description"));
+        wd.manage().deleteAllCookies();
+        log.trace("Adding cookie.");
+        wd.manage().addCookie(consentCookie);
+        log.trace("Done dealing with cookies.");
     }
 
     /**
@@ -107,5 +423,9 @@ public class Util {
             LOGGER.error("Exception", e);
         }
         return null;
+    }
+
+    public static Timestamp getCurrentTimestamp() {
+        return new Timestamp(new Date().getTime());
     }
 }

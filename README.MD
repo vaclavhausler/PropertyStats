@@ -1,3 +1,7 @@
+This readme is outdated and covers a historical version which didn't use Spring, Hibernate, PostgreSQL, Liquibase and other frameworks added later on.
+
+Note: gecko driver releases: https://github.com/mozilla/geckodriver/releases
+
 How does it work?
 
 - controller.com.vhausler.property.stats.SRealityController can be run and based on the parameters in its start method it scrapes property prices for different cities (or even the whole country). There's no jar with dependencies and such, it's run from

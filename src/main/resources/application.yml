@@ -1,9 +1,13 @@
 logging:
   level:
-    com.vhausler.property.stats: TRACE
+    com.vhausler.property.stats: debug
 server:
   port: 8080
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 3
   application:
     name: property-stats
   datasource:
@@ -12,6 +16,10 @@ spring:
     password: admin
   jpa:
     show-sql: false
+    properties:
+      hibernate:
+        id:
+          new_generator_mappings: false
   liquibase:
     enabled: true
     change-log: classpath:/db/changelog-master.xml
@@ -19,3 +27,7 @@ spring:
     default-schema: property_stats
     user: postgres
     password: admin
+property-stats:
+  webdriver:
+    headless: true
+    pathToFirefoxExecutable: 'C:\Program Files\Mozilla Firefox\firefox.exe'

@@ -41,6 +41,7 @@ public class ScraperResultEntity {
     @Column(name = "link")
     private String link;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "scraperResult")
+    @ToString.Exclude
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperResult")
     private List<ParameterEntity> parameterEntities;
 }

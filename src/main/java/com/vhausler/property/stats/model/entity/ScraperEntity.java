@@ -2,6 +2,7 @@ package com.vhausler.property.stats.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -30,6 +31,7 @@ public class ScraperEntity {
     @Column(name = "params_done")
     private Timestamp paramsDone;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "scraperEntity")
+    @ToString.Exclude
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperEntity")
     private List<ScraperResultEntity> scraperResultEntities;
 }

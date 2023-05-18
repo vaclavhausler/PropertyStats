@@ -8,6 +8,7 @@ import com.vhausler.property.stats.model.entity.ScraperResultEntity;
 import com.vhausler.property.stats.model.repository.LocationRepository;
 import com.vhausler.property.stats.model.repository.ScraperRepository;
 import com.vhausler.property.stats.util.Util;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,14 +27,28 @@ public class SaleService {
     private final LocationRepository locationRepository;
     private final ConfigProperties.WebDriverProperties webDriverProperties;
 
-    public List<LocationEntity> getAllLocationEntities() {
-        return (List<LocationEntity>) locationRepository.findAll();
-    }
+    /*
+    java.util.ConcurrentModificationException: null
+	at java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1013) ~[na:na]
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:967) ~[na:na]
+	at org.hibernate.collection.spi.AbstractPersistentCollection$IteratorProxy.next(AbstractPersistentCollection.java:917) ~[hibernate-core-6.1.7.Final.jar:6.1.7.Final]
+	at com.vhausler.property.stats.service.SaleService.scrapeParams(SaleService.java:92) ~[classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
 
+	Entity -> DTO -> Entity to prevent concurrent modifications?
+     */
+
+    @Transactional
     public void registerScrapers() {
-        List<LocationEntity> allLocationEntities = getAllLocationEntities();
+        log.trace("Scheduler: registerScrapers. START.");
+        List<LocationEntity> allLocationEntities = locationRepository.findAll();
+        log.trace("Locations found: {}.", allLocationEntities.size());
         for (LocationEntity locationEntity : allLocationEntities) {
             List<ScraperEntity> allByLocationEntity = scraperRepository.findAllByLocationEntity(locationEntity);
+            log.trace("Found {} scraper entities for location: {}.", allByLocationEntity.size(), locationEntity.getId());
             if (allByLocationEntity.isEmpty()) {
                 // create new scraper entity
                 ScraperEntity scraperEntity = new ScraperEntity();
@@ -43,10 +58,13 @@ public class SaleService {
                 scraperRepository.save(scraperEntity);
             }
         }
+        log.trace("Scheduler: registerScrapers. DONE.");
     }
 
+    @Transactional
     public void scrapeHeaders() {
-        List<LocationEntity> allLocationEntities = getAllLocationEntities();
+        log.debug("Scheduler: scrapeHeaders. START.");
+        List<LocationEntity> allLocationEntities = locationRepository.findAll();
         for (LocationEntity locationEntity : allLocationEntities) {
             List<ScraperEntity> allByLocationEntity = scraperRepository.findAllByLocationEntity(locationEntity);
             if (!allByLocationEntity.isEmpty()) {
@@ -68,10 +86,13 @@ public class SaleService {
                 }
             }
         }
+        log.debug("Scheduler: scrapeHeaders. DONE.");
     }
 
-    public void scrapeParams() {
-        List<LocationEntity> allLocationEntities = getAllLocationEntities();
+    @Transactional
+    public void scrapeParams() { // NOSONAR
+        log.debug("Scheduler: scrapeParams. START.");
+        List<LocationEntity> allLocationEntities = locationRepository.findAll();
         for (LocationEntity locationEntity : allLocationEntities) {
             List<ScraperEntity> allByLocationEntity = scraperRepository.findAllByLocationEntity(locationEntity);
             if (!allByLocationEntity.isEmpty()) {
@@ -81,9 +102,15 @@ public class SaleService {
                         log.debug("Scraping params for scraper entity: {}.", scraperEntity);
                         DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
                         try {
+                            int done = 0;
                             for (ScraperResultEntity scraperResultEntity : scraperEntity.getScraperResultEntities()) {
-                                Util.scrapePropertyParams(driverWrapper, scraperResultEntity);
-                                scraperRepository.save(scraperEntity);
+                                if (scraperResultEntity.getParameterEntities().isEmpty()) {
+                                    Util.scrapePropertyParams(driverWrapper, scraperResultEntity);
+                                    scraperRepository.save(scraperEntity);
+                                }
+                                if (done++ % 20 == 0) {
+                                    log.debug("Finished scraping property params for {}/{} properties for {}.", done, scraperEntity.getScraperResultEntities().size(), scraperEntity.getLocationEntity().getId());
+                                }
                             }
                         } catch (Exception e) {
                             log.error("Exception scraping property params.", e);
@@ -94,5 +121,6 @@ public class SaleService {
                 }
             }
         }
+        log.debug("Scheduler: scrapeParams. DONE.");
     }
 }

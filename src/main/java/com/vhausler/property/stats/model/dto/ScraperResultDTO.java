@@ -1,8 +1,10 @@
 package com.vhausler.property.stats.model.dto;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Data
 public class ScraperResultDTO {
@@ -14,4 +16,6 @@ public class ScraperResultDTO {
     private int pricePerSquareMeter;
     private Timestamp created;
     private String link;
+    @ToString.Exclude
+    private List<ParameterDTO> parameterDTOS;
 }

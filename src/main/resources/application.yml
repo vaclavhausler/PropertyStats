@@ -7,7 +7,7 @@ spring:
   task:
     scheduling:
       pool:
-        size: 3
+        size: 1
   application:
     name: property-stats
   datasource:
@@ -20,6 +20,9 @@ spring:
       hibernate:
         id:
           new_generator_mappings: false
+        show_sql: false
+        format_sql: true
+    open-in-view: false
   liquibase:
     enabled: true
     change-log: classpath:/db/changelog-master.xml
@@ -27,6 +30,8 @@ spring:
     default-schema: property_stats
     user: postgres
     password: admin
+  main:
+    allow-circular-references: true
 property-stats:
   webdriver:
     headless: true

@@ -4,9 +4,9 @@ import com.google.gson.Gson;
 import com.vhausler.property.stats.model.Constants;
 import com.vhausler.property.stats.model.DriverWrapper;
 import com.vhausler.property.stats.model.Property;
-import com.vhausler.property.stats.model.entity.ParameterEntity;
-import com.vhausler.property.stats.model.entity.ScraperEntity;
-import com.vhausler.property.stats.model.entity.ScraperResultEntity;
+import com.vhausler.property.stats.model.dto.ParameterDTO;
+import com.vhausler.property.stats.model.dto.ScraperDTO;
+import com.vhausler.property.stats.model.dto.ScraperResultDTO;
 import io.opentelemetry.api.internal.StringUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -44,37 +44,22 @@ import static org.apache.logging.log4j.util.Strings.isEmpty;
 public class Util {
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
 
-//    /**
-//     * Scrapes the city url for any properties and exports them into an Excel file with the name of the city.
-//     *
-//     * @param scraperEntity contains link - cityURL like <a href="https://www.sreality.cz/hledani/prodej/byty/pribram">https://www.sreality.cz/hledani/prodej/byty/pribram</a>
-//     */
-//    @SuppressWarnings("SameParameterValue")
-//    public static void scrapeAndExport(DriverWrapper driverWrapper, ScraperEntity scraperEntity) {
-//        String cityURL = scraperEntity.getLocationEntity().getValue();
-//        Instant start = Instant.now();
-//        List<Property> allProperties = scrapeProperties(driverWrapper, scraperEntity);
-//        Util.exportResults(allProperties, cityURL);
-//        Instant stop = Instant.now();
-//        Duration dur = Duration.between(start, stop);
-//        log.debug("Finished processing {} in {} min.", cityURL, dur.toMinutes());
-//    }
-
     /**
      * Scrapes the city url for any properties. Uses dynamic waiting to load the property list, understands the pagination and goes through all the pages.
      * Properties with no prices listed are skipped. Calculates price per square meter based on the square meters in the title and the price.
      *
-     * @param scraperEntity contains link - cityURL like <a href="https://www.sreality.cz/hledani/prodej/byty/pribram">https://www.sreality.cz/hledani/prodej/byty/pribram</a>
+     * @param scraperDTO          contains link - cityURL like <a href="https://www.sreality.cz/hledani/prodej/byty/pribram">https://www.sreality.cz/hledani/prodej/byty/pribram</a>
+     * @param locationEntityValue for scraper link creation
      */
-    public static void scrapePropertyHeaders(DriverWrapper driverWrapper, ScraperEntity scraperEntity) {
+    public static void scrapePropertyHeaders(DriverWrapper driverWrapper, ScraperDTO scraperDTO, String locationEntityValue) {
         WebDriver wd = driverWrapper.getWd();
         // check pagination
-        String cityURL = Constants.URL.BASE_URL + scraperEntity.getLocationEntity().getValue();
+        String cityURL = Constants.URL.BASE_URL + locationEntityValue;
         log.debug("Navigating to {}.", cityURL);
         wd.get(cityURL);
         customWait(500);
         log.trace("Checking pagination.");
-        waitUntilElementFound(wd, By.className("property-list"));
+        waitUntilElementFound(wd, By.className("property-list")); // NOSONAR
         int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
         int totalNumberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
         log.debug("Found {} pages to go through.", totalNumberOfPages);
@@ -87,14 +72,14 @@ public class Util {
         }
 
         // scrape page data
-        scraperEntity.setScraperResultEntities(new ArrayList<>());
+        scraperDTO.setScraperResultDTOS(new ArrayList<>());
         for (int i = 0; i < allPageLinks.size(); i++) {
             String pageLink = allPageLinks.get(i);
-            scrapePageData(driverWrapper, pageLink, i, totalNumberOfPages, scraperEntity);
+            scrapePageData(driverWrapper, pageLink, i, totalNumberOfPages, scraperDTO);
         }
     }
 
-    private static void scrapePageData(DriverWrapper driverWrapper, String pageLink, int index, int numberOfPages, ScraperEntity scraperEntity) {
+    private static void scrapePageData(DriverWrapper driverWrapper, String pageLink, int index, int numberOfPages, ScraperDTO scraperDTO) {
         log.trace("Navigating to {}.", pageLink);
         WebDriver wd = driverWrapper.getWd();
         wd.get(pageLink);
@@ -103,7 +88,7 @@ public class Util {
         List<WebElement> properties = wd.findElements(By.className("property"));
         if (properties.isEmpty()) {
             log.debug("Found 0 properties, re-scraping page data.");
-            scrapePageData(driverWrapper, pageLink, index, numberOfPages, scraperEntity);
+            scrapePageData(driverWrapper, pageLink, index, numberOfPages, scraperDTO);
             return;
         }
         log.debug("Found {} properties on page {}/{}: {}.", properties.size(), index + 1, numberOfPages, pageLink);
@@ -115,83 +100,55 @@ public class Util {
             Integer price = getPrice(info.findElement(By.className("price")).getText());
             Integer pricePerSquareMeter = squareMeters == null || price == null ? null : price / squareMeters;
             String link = info.findElement(By.cssSelector("a[class='title']")).getAttribute("href");
-            if (price != null) {
-                ScraperResultEntity scraperResultEntity = new ScraperResultEntity();
-                scraperResultEntity.setScraperEntity(scraperEntity);
-                scraperResultEntity.setTitle(title);
-                scraperResultEntity.setAddress(address);
-                scraperResultEntity.setPrice(price);
-                scraperResultEntity.setPricePerSquareMeter(pricePerSquareMeter);
-                scraperResultEntity.setLink(link);
-                scraperResultEntity.setCreated(getCurrentTimestamp());
+            if (price != null && pricePerSquareMeter != null) {
+                ScraperResultDTO scraperResultDTO = new ScraperResultDTO();
+                scraperResultDTO.setScraperId(scraperDTO.getId());
+                scraperResultDTO.setTitle(title);
+                scraperResultDTO.setAddress(address);
+                scraperResultDTO.setPrice(price);
+                scraperResultDTO.setPricePerSquareMeter(pricePerSquareMeter);
+                scraperResultDTO.setLink(link);
+                scraperResultDTO.setCreated(getCurrentTimestamp());
 
-                scraperEntity.getScraperResultEntities().add(scraperResultEntity);
+                scraperDTO.getScraperResultDTOS().add(scraperResultDTO);
             }
         }
         driverWrapper.setAvailable(true);
     }
 
-    public static void scrapePropertyParams(DriverWrapper driverWrapper, ScraperEntity scraperEntity) {
-        WebDriver wd = driverWrapper.getWd();
-        // scrape property parameters
-        log.debug("Going through {} properties to fetch their parameters.", scraperEntity.getScraperResultEntities().size());
-        int done = 0;
-        for (ScraperResultEntity scraperResultEntity : scraperEntity.getScraperResultEntities()) {
-            DriverWrapper finalDriverWrapper = driverWrapper;
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> scrapePropertyParams(finalDriverWrapper, scraperResultEntity));
-            try {
-                future.get(10, TimeUnit.SECONDS);
-            } catch (Exception e) { // NOSONAR
-                log.debug("Timeout waiting for property params page to load, skipping.");
-                try {
-                    wd.navigate().refresh();
-                    customWait(1000);
-                } catch (Exception e2) {
-                    // possible timeout exception when the browser dies
-                    log.debug("Refresh failed, refresh manually.");
-                }
-            }
-            done++;
-            if (done % 20 == 0) {
-                log.debug("Finished scraping {}/{} property params for {}.", done, scraperEntity.getScraperResultEntities().size(), scraperEntity.getLocationEntity().getId());
-            }
-        }
-        log.debug("Finished scraping {}/{} property params for {}.", done, scraperEntity.getScraperResultEntities().size(), scraperEntity.getLocationEntity().getId());
-    }
-
-    public static void scrapePropertyParams(DriverWrapper driverWrapper, ScraperResultEntity scraperResultEntity) {
+    public static void scrapePropertyParams(DriverWrapper driverWrapper, ScraperResultDTO scraperResultDTO) {
         try {
             // extra params on property detail
             WebDriver wd = driverWrapper.getWd();
-            log.trace("Scraping property params from: {}.", scraperResultEntity.getLink());
-            wd.get(scraperResultEntity.getLink());
+            log.trace("Scraping property params from: {}.", scraperResultDTO.getLink());
+            wd.get(scraperResultDTO.getLink());
             customWait(500);
             WebElement propertyTitleElement = waitUntilElementFound(wd, By.cssSelector("div[class='property-title']"));
             if (propertyTitleElement != null) {
                 WebElement params1 = waitUntilElementFound(wd, By.className("params1"));
                 WebElement params2 = waitUntilElementFound(wd, By.className("params2"));
 
-                List<ParameterEntity> parameterEntities = new ArrayList<>();
+                List<ParameterDTO> parameterDTOS = new ArrayList<>();
                 if (params1 != null) {
-                    parameterEntities.addAll(scrapeParams(params1, scraperResultEntity));
+                    parameterDTOS.addAll(scrapeParams(params1, scraperResultDTO));
                 }
                 if (params2 != null) {
-                    parameterEntities.addAll(scrapeParams(params2, scraperResultEntity));
+                    parameterDTOS.addAll(scrapeParams(params2, scraperResultDTO));
                 }
-                scraperResultEntity.setParameterEntities(parameterEntities);
+                scraperResultDTO.setParameterDTOS(parameterDTOS);
             } else {
                 log.debug("Timeout waiting for property params page to load, skipping.");
             }
         } catch (Exception e) { // NOSONAR
             // ignore, continue further
-            log.debug("Exception (skipping) scraping property params from link: {}.", scraperResultEntity.getLink());
+            log.debug("Exception (skipping) scraping property params from link: {}.", scraperResultDTO.getLink());
         }
-        log.trace("Finished scraping property params from link: {}.", scraperResultEntity.getLink());
+        log.trace("Finished scraping property params from link: {}.", scraperResultDTO.getLink());
         driverWrapper.setAvailable(true);
     }
 
-    private static List<ParameterEntity> scrapeParams(WebElement params, ScraperResultEntity scraperResultEntity) {
-        List<ParameterEntity> result = new ArrayList<>();
+    private static List<ParameterDTO> scrapeParams(WebElement params, ScraperResultDTO scraperResultDTO) {
+        List<ParameterDTO> result = new ArrayList<>();
         List<WebElement> paramParents = params.findElements(By.cssSelector("li"));
         for (WebElement paramParent : paramParents) {
             String key = paramParent.findElement(By.cssSelector("label")).getText();
@@ -216,11 +173,11 @@ public class Util {
                     // ignore, can happen when there's really a missing value in the column
                 }
             }
-            ParameterEntity parameterEntity = new ParameterEntity();
-            parameterEntity.setKey(key);
-            parameterEntity.setValue(value);
-            parameterEntity.setScraperResult(scraperResultEntity);
-            result.add(parameterEntity);
+            ParameterDTO parameterDTO = new ParameterDTO();
+            parameterDTO.setKey(key);
+            parameterDTO.setValue(value);
+            parameterDTO.setScraperResultId(scraperResultDTO.getId());
+            result.add(parameterDTO);
         }
         return result;
     }
@@ -322,6 +279,7 @@ public class Util {
         // increase the result size
         wd.findElement(By.className("per-page")).findElement(By.cssSelector("span[list-select='listSelectConf'")).click();
         WebElement perPageSelect = waitUntilElementFound(wd, By.className("per-page-select"));
+        assert perPageSelect != null;
         perPageSelect.findElement(By.className("options")).findElement(By.cssSelector("li:last-of-type")).findElement(By.cssSelector("button")).click();
 
         log.trace("Done increasing result size.");

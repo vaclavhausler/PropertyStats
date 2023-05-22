@@ -18,7 +18,7 @@ public class ScraperResultEntity {
     private long id;
 
     @ToString.Exclude
-    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
     @JoinColumn(name = "scraper_id", referencedColumnName = "id")
     private ScraperEntity scraperEntity;
 
@@ -40,6 +40,9 @@ public class ScraperResultEntity {
     @Basic
     @Column(name = "link")
     private String link;
+    @Basic
+    @Column(name = "available")
+    private boolean available;
 
     @ToString.Exclude
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperResult")

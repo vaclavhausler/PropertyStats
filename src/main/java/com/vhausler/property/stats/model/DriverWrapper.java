@@ -31,8 +31,13 @@ public class DriverWrapper {
     }
 
     public void quit() {
-        log.debug("{} is quitting.", name);
-        wd.quit();
+        log.debug("Driver '{}' is quitting.", name);
+        try {
+            wd.close();
+            wd.quit();
+        } catch (Exception e) {
+            log.error("Quitting driver failed.");
+        }
     }
 
     public boolean isOutdated(long timeout) {

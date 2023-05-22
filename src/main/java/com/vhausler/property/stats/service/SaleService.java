@@ -15,7 +15,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static com.vhausler.property.stats.util.Util.getCurrentTimestamp;
 
@@ -30,7 +34,7 @@ public class SaleService {
     private final DriverService driverService;
     private final ScraperRepository scraperRepository;
     private final LocationRepository locationRepository;
-    private final ScraperParamService scraperParamService;
+    private final ScraperService scraperService;
     private final ConfigProperties.WebDriverProperties webDriverProperties;
 
     public void registerScrapers() {
@@ -54,26 +58,34 @@ public class SaleService {
 
     public void scrapeHeaders() {
         log.debug("Scheduler: scrapeHeaders. START.");
-        List<LocationEntity> allLocationEntities = locationRepository.findAll();
-        for (LocationEntity locationEntity : allLocationEntities) {
-            List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperRepository.findAllByLocationEntity(locationEntity));
-            if (!scrapers.isEmpty()) {
-                // process anything unfinished
-                for (ScraperDTO scraperDTO : scrapers) {
-                    if (scraperDTO.getHeadersDone() == null) {
-                        log.debug("Scraping headers for: {}.", scraperDTO.getLocationId());
-                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
-                        try {
+        Instant start = Instant.now();
+        List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNull();
+        log.debug("Scraper headers fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());
+        start = Instant.now();
+        List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperEntities);
+        log.debug("Scraper headers mapped in {} ms.", Duration.between(start, Instant.now()).toMillis());
+        if (!scrapers.isEmpty()) {
+            // process anything unfinished
+            for (ScraperDTO scraperDTO : scrapers) {
+                if (scraperDTO.getHeadersDone() == null) {
+                    log.debug("Scraping headers for: {}.", scraperDTO.getLocationId());
+                    DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
+                    try {
+                        Optional<LocationEntity> locationEntityOptional = locationRepository.findById(scraperDTO.getLocationId());
+                        if (locationEntityOptional.isPresent()) {
+                            LocationEntity locationEntity = locationEntityOptional.get();
                             Util.scrapePropertyHeaders(driverWrapper, scraperDTO, locationEntity.getValue());
                             scraperDTO.setHeadersDone(getCurrentTimestamp());
                             ScraperEntity scraperEntity = entityMapper.scraperDTOToScraperEntity(scraperDTO);
                             scraperRepository.save(scraperEntity);
                             log.debug("Finished scraping headers for: {}.", scraperDTO.getLocationId());
-                        } catch (Exception e) {
-                            log.error("Exception scraping property params.", e);
-                        } finally {
-                            driverWrapper.quit();
+                        } else {
+                            log.warn("Location entity not found: {}.", scraperDTO.getLocationId());
                         }
+                    } catch (Exception e) {
+                        log.error("Exception scraping property params.", e);
+                    } finally {
+                        CompletableFuture.runAsync(driverWrapper::quit);
                     }
                 }
             }
@@ -81,43 +93,43 @@ public class SaleService {
         log.debug("Scheduler: scrapeHeaders. DONE.");
     }
 
+    // TODO: add params done column to scraper result?
+
     @Transactional
     public void scrapeParams() { // NOSONAR
         log.debug("Scheduler: scrapeParams. START.");
-        List<LocationEntity> allLocationEntities = locationRepository.findAll();
-        for (LocationEntity locationEntity : allLocationEntities) {
-            List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperRepository.findAllByLocationEntity(locationEntity));
-            if (!scrapers.isEmpty()) {
-                // process anything unfinished
-                for (ScraperDTO scraperDTO : scrapers) {
-                    if (scraperDTO.getParamsDone() == null) {
-                        log.debug("Scraping params for scraper entity: {}.", scraperDTO);
-                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
-                        try {
-                            int done = 0;
-                            for (ScraperResultDTO scraperResultDTO : scraperDTO.getScraperResultDTOS()) {
-                                if (scraperResultDTO.getParameterDTOS().isEmpty()) {
-                                    scraperParamService.scrapeParams(driverWrapper, scraperResultDTO);
-                                }
-                                if (done++ % 20 == 0) {
-                                    log.debug("Finished scraping property params for {}/{} properties for {}.",
-                                            done, scraperDTO.getScraperResultDTOS().size(), scraperDTO.getLocationId());
-                                }
+        Instant start = Instant.now();
+        List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNotNullAndParamsDoneIsNull();
+        log.debug("Scraper params fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());
+        start = Instant.now();
+        List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperEntities);
+        log.debug("Scraper params mapped in {} ms.", Duration.between(start, Instant.now()).toMillis());
+        if (!scrapers.isEmpty()) {
+            // process anything unfinished
+            for (ScraperDTO scraperDTO : scrapers) {
+                if (scraperDTO.getParamsDone() == null) {
+                    log.debug("Scraping params for scraper entity: {}.", scraperDTO);
+                    DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
+                    try {
+                        int done = 0;
+                        for (ScraperResultDTO scraperResultDTO : scraperDTO.getScraperResultDTOS()) {
+                            if (scraperResultDTO.getParameterDTOS().isEmpty()) {
+                                scraperService.scrapeParams(driverWrapper, scraperResultDTO);
                             }
-                            scraperDTO.setParamsDone(getCurrentTimestamp());
-                            ScraperEntity scraperEntity = entityMapper.scraperDTOToScraperEntity(scraperDTO);
-                            scraperRepository.save(scraperEntity);
-                        } catch (Exception e) {
-                            log.error("Exception scraping property params.", e);
-                        } finally {
-                            driverWrapper.quit();
+                            if (done++ % 20 == 0) {
+                                log.debug("Finished scraping property params for {}/{} properties for {}.",
+                                        done, scraperDTO.getScraperResultDTOS().size(), scraperDTO.getLocationId());
+                            }
                         }
+                        scraperService.setParamsDone(scraperDTO);
+                    } catch (Exception e) {
+                        log.error("Exception scraping property params. Restarting the webdriver.");
+                    } finally {
+                        CompletableFuture.runAsync(driverWrapper::quit);
                     }
                 }
             }
         }
         log.debug("Scheduler: scrapeParams. DONE.");
     }
-
-
 }

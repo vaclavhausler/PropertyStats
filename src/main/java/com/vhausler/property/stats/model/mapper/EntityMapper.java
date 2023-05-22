@@ -25,7 +25,7 @@ public interface EntityMapper {
     List<ScraperDTO> scraperEntitiesToScraperDTOS(List<ScraperEntity> scraperEntities);
 
     @Mapping(target = "locationId", source = "locationEntity.id")
-    @Mapping(target = "scraperResultDTOS", source = "scraperResultEntities")
+    @Mapping(target = "scraperResultDTOS", source = "scraperResultEntities", ignore = false)
     ScraperDTO scraperEntityToScraperDTO(ScraperEntity scraperEntity);
 
     List<ScraperResultDTO> scraperResultEntitiesToScraperResultDTOS(List<ScraperResultEntity> scraperResultEntities);

@@ -15,7 +15,7 @@ public class ParameterEntity {
     private long id;
 
     @ToString.Exclude
-    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
     @JoinColumn(name = "scraper_result_id", referencedColumnName = "id")
     private ScraperResultEntity scraperResult;
 

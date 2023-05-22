@@ -9,5 +9,12 @@
     <!--
     Put structure updates in here. Do not put data init updates here, keep those in the init data changelog.
     -->
+    <changeSet id="add-available-column-to-scraper-result" author="vhausler">
+        <addColumn tableName="scraper_result">
+            <column name="available" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>

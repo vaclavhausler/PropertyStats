@@ -16,10 +16,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Cookie;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +40,7 @@ import static org.apache.logging.log4j.util.Strings.isEmpty;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Util {
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
+    public static String NO_OFFER_FOUND_EXCEPTION = "no-offer-found-exception";
 
     /**
      * Scrapes the city url for any properties. Uses dynamic waiting to load the property list, understands the pagination and goes through all the pages.
@@ -137,7 +135,14 @@ public class Util {
                 }
                 scraperResultDTO.setParameterDTOS(parameterDTOS);
             } else {
-                log.debug("Timeout waiting for property params page to load, skipping.");
+                log.debug("Timeout waiting for property params page to load, skipping. {}", scraperResultDTO.getLink());
+            }
+        } catch (IllegalStateException e) {
+            if (NO_OFFER_FOUND_EXCEPTION.equals(e.getMessage())) {
+                log.debug("Setting offer to unavailable. {}", scraperResultDTO.getLink());
+                scraperResultDTO.setAvailable(false);
+            } else {
+                throw new IllegalStateException(e);
             }
         } catch (Exception e) { // NOSONAR
             // ignore, continue further
@@ -216,6 +221,8 @@ public class Util {
         return result;
     }
 
+    static int consecutiveFails = 0;
+
     public static WebElement waitUntilElementFound(WebDriver wd, By by) { // NOSONAR
         log.trace("Waiting for element found by: '{}', to be present and to contain any text.", by);
         CompletableFuture<WebElement> future = CompletableFuture.supplyAsync(() -> {
@@ -231,13 +238,18 @@ public class Util {
                     try {
                         String errorDescription = wd.findElement(By.className("error-description")).getText();
                         if ("Je mi líto, inzerát neexistuje.".equals(errorDescription)) {
-                            return null;
+                            throw new IllegalStateException(NO_OFFER_FOUND_EXCEPTION);
                         }
-                    } catch (Exception e2) {
+                    } catch (NoSuchElementException ignore) {
                         // ignore not found exception
                     }
                     log.debug("Element {} not found, waiting.", by);
                     customWait(500);
+
+                    if (consecutiveFails++ > 10) {
+                        consecutiveFails = 0;
+                        throw new IllegalStateException("Too many fails in a row, throwing an exception.");
+                    }
                 }
                 customWait(100);
             }

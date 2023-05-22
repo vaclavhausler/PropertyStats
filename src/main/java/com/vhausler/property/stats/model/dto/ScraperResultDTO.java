@@ -16,6 +16,7 @@ public class ScraperResultDTO {
     private int pricePerSquareMeter;
     private Timestamp created;
     private String link;
+    private boolean available;
     @ToString.Exclude
     private List<ParameterDTO> parameterDTOS;
 }

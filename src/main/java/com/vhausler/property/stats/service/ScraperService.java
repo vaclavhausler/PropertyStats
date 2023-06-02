@@ -34,7 +34,11 @@ public class ScraperService {
             Util.scrapePropertyParams(driverWrapper, scraperResultDTO);
             ScraperResultEntity scraperResultEntity = entityMapper.scraperResultDTOToScraperResultEntity(scraperResultDTO);
             scraperResultRepository.save(scraperResultEntity);
-            log.trace("Property params saved: {}.", scraperResultEntity.getParameterEntities().size());
+            if (scraperResultEntity.isAvailable()) {
+                log.trace("Property params saved: {}.", scraperResultEntity.getParameterEntities().size());
+            } else {
+                log.trace("Offer no longer available: {}.", scraperResultDTO.getLink());
+            }
         });
         try {
             future.get(10, TimeUnit.SECONDS);
@@ -50,5 +54,13 @@ public class ScraperService {
         ScraperEntity scraperEntity = entityMapper.scraperDTOToScraperEntity(scraperDTO);
         scraperRepository.save(scraperEntity);
         log.trace("Setting scraper params done for {}.", scraperEntity.getLocationEntity().getId());
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void setParamsDone(ScraperResultDTO scraperResultDTO) {
+        scraperResultDTO.setParamsDone(getCurrentTimestamp());
+        ScraperResultEntity scraperResultEntity = entityMapper.scraperResultDTOToScraperResultEntity(scraperResultDTO);
+        scraperResultRepository.save(scraperResultEntity);
+        log.trace("Setting scraper result params done for {}.", scraperResultEntity.getLink());
     }
 }

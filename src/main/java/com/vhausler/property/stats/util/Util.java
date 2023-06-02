@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.logging.log4j.util.Strings.isEmpty;
 
@@ -156,7 +157,7 @@ public class Util {
         List<ParameterDTO> result = new ArrayList<>();
         List<WebElement> paramParents = params.findElements(By.cssSelector("li"));
         for (WebElement paramParent : paramParents) {
-            String key = paramParent.findElement(By.cssSelector("label")).getText();
+            String key = paramParent.findElement(By.className("param-label")).getText();
             if (key.contains(":")) {
                 key = key.replace(":", "");
             }
@@ -225,6 +226,7 @@ public class Util {
 
     public static WebElement waitUntilElementFound(WebDriver wd, By by) { // NOSONAR
         log.trace("Waiting for element found by: '{}', to be present and to contain any text.", by);
+        AtomicBoolean noOfferFound = new AtomicBoolean(false);
         CompletableFuture<WebElement> future = CompletableFuture.supplyAsync(() -> {
             while (true) {
                 try {
@@ -238,12 +240,13 @@ public class Util {
                     try {
                         String errorDescription = wd.findElement(By.className("error-description")).getText();
                         if ("Je mi líto, inzerát neexistuje.".equals(errorDescription)) {
-                            throw new IllegalStateException(NO_OFFER_FOUND_EXCEPTION);
+                            noOfferFound.set(true);
+                            throw new IllegalStateException(NO_OFFER_FOUND_EXCEPTION); // to bypass the timeout
                         }
                     } catch (NoSuchElementException ignore) {
                         // ignore not found exception
                     }
-                    log.debug("Element {} not found, waiting.", by);
+                    log.trace("Element {} not found, waiting.", by);
                     customWait(500);
 
                     if (consecutiveFails++ > 10) {
@@ -259,6 +262,9 @@ public class Util {
         } catch (Exception e) { // NOSONAR
             // ignore
             log.debug("Timeout waiting for element: {}", by);
+        }
+        if (noOfferFound.get()) {
+            throw new IllegalStateException(NO_OFFER_FOUND_EXCEPTION);
         }
         return null;
     }

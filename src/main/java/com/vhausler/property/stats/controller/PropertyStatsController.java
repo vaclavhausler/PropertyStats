@@ -4,6 +4,7 @@ import com.vhausler.property.stats.service.SaleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.TimeUnit;
@@ -14,8 +15,7 @@ public class PropertyStatsController {
 
     private final SaleService saleService;
 
-    @Async
-    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
+    @PostMapping("/register-scrapers")
     public void registerScrapers() {
         saleService.registerScrapers();
     }

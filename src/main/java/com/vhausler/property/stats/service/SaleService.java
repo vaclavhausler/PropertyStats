@@ -6,9 +6,11 @@ import com.vhausler.property.stats.model.dto.ScraperDTO;
 import com.vhausler.property.stats.model.dto.ScraperResultDTO;
 import com.vhausler.property.stats.model.entity.LocationEntity;
 import com.vhausler.property.stats.model.entity.ScraperEntity;
+import com.vhausler.property.stats.model.entity.ScraperResultEntity;
 import com.vhausler.property.stats.model.mapper.EntityMapper;
 import com.vhausler.property.stats.model.repository.LocationRepository;
 import com.vhausler.property.stats.model.repository.ScraperRepository;
+import com.vhausler.property.stats.model.repository.ScraperResultRepository;
 import com.vhausler.property.stats.util.Util;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -32,9 +34,10 @@ public class SaleService {
 
     private final EntityMapper entityMapper;
     private final DriverService driverService;
+    private final ScraperService scraperService;
     private final ScraperRepository scraperRepository;
     private final LocationRepository locationRepository;
-    private final ScraperService scraperService;
+    private final ScraperResultRepository scraperResultRepository;
     private final ConfigProperties.WebDriverProperties webDriverProperties;
 
     public void registerScrapers() {
@@ -42,16 +45,12 @@ public class SaleService {
         List<LocationEntity> allLocationEntities = locationRepository.findAll();
         log.trace("Locations found: {}.", allLocationEntities.size());
         for (LocationEntity locationEntity : allLocationEntities) {
-            List<ScraperEntity> allByLocationEntity = scraperRepository.findAllByLocationEntity(locationEntity);
-            log.trace("Found {} scraper entities for location: {}.", allByLocationEntity.size(), locationEntity.getId());
-            if (allByLocationEntity.isEmpty()) {
-                // create new scraper entity
-                ScraperEntity scraperEntity = new ScraperEntity();
-                scraperEntity.setLocationEntity(locationEntity);
-                log.debug("Creating scraper entity: {}.", scraperEntity);
-                scraperEntity.setCreated(getCurrentTimestamp());
-                scraperRepository.save(scraperEntity);
-            }
+            // create new scraper entity
+            ScraperEntity scraperEntity = new ScraperEntity();
+            scraperEntity.setLocationEntity(locationEntity);
+            log.debug("Creating scraper entity: {}.", scraperEntity);
+            scraperEntity.setCreated(getCurrentTimestamp());
+            scraperRepository.save(scraperEntity);
         }
         log.trace("Scheduler: registerScrapers. DONE.");
     }
@@ -93,8 +92,6 @@ public class SaleService {
         log.debug("Scheduler: scrapeHeaders. DONE.");
     }
 
-    // TODO: add params done column to scraper result?
-
     @Transactional
     public void scrapeParams() { // NOSONAR
         log.debug("Scheduler: scrapeParams. START.");
@@ -110,15 +107,23 @@ public class SaleService {
                 if (scraperDTO.getParamsDone() == null) {
                     log.debug("Scraping params for scraper entity: {}.", scraperDTO);
                     DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
+                    start = Instant.now();
+                    List<ScraperResultEntity> scraperResultEntities = scraperResultRepository.findAllByScraperEntity_idAndParamsDoneIsNull(scraperDTO.getId());
+                    log.debug("Scraper result entities fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());
+                    start = Instant.now();
+                    List<ScraperResultDTO> scraperResultDTOS = entityMapper.scraperResultEntitiesToScraperResultDTOS(scraperResultEntities);
+                    log.debug("Scraper result entities mapped in {} ms.", Duration.between(start, Instant.now()).toMillis());
                     try {
                         int done = 0;
-                        for (ScraperResultDTO scraperResultDTO : scraperDTO.getScraperResultDTOS()) {
-                            if (scraperResultDTO.getParameterDTOS().isEmpty()) {
+                        for (ScraperResultDTO scraperResultDTO : scraperResultDTOS) {
+                            if (scraperResultDTO.getParameterDTOS() == null) {
+                                scraperResultDTO.setAvailable(true); // liquibase/postgresql default doesn't work for some reason
                                 scraperService.scrapeParams(driverWrapper, scraperResultDTO);
+                                scraperService.setParamsDone(scraperResultDTO);
                             }
                             if (done++ % 20 == 0) {
                                 log.debug("Finished scraping property params for {}/{} properties for {}.",
-                                        done, scraperDTO.getScraperResultDTOS().size(), scraperDTO.getLocationId());
+                                        done, scraperResultDTOS.size(), scraperDTO.getLocationId());
                             }
                         }
                         scraperService.setParamsDone(scraperDTO);

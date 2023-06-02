@@ -17,4 +17,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add-params-done-column-to-scrape-result" author="vhausler">
+        <addColumn tableName="scraper_result">
+            <column name="params_done" type="timestamp"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

@@ -43,6 +43,9 @@ public class ScraperResultEntity {
     @Basic
     @Column(name = "available")
     private boolean available;
+    @Basic
+    @Column(name = "params_done")
+    private Timestamp paramsDone;
 
     @ToString.Exclude
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperResult")

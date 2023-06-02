@@ -17,6 +17,7 @@ public class ScraperResultDTO {
     private Timestamp created;
     private String link;
     private boolean available;
+    private Timestamp paramsDone;
     @ToString.Exclude
     private List<ParameterDTO> parameterDTOS;
 }

@@ -97,10 +97,10 @@ public class SaleService {
         log.debug("Scheduler: scrapeParams. START.");
         Instant start = Instant.now();
         List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNotNullAndParamsDoneIsNull();
-        log.debug("Scraper params fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());
+        log.debug("{} Scraper params fetched in {} ms.", scraperEntities.size(), Duration.between(start, Instant.now()).toMillis());
         start = Instant.now();
         List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperEntities);
-        log.debug("Scraper params mapped in {} ms.", Duration.between(start, Instant.now()).toMillis());
+        log.debug("{} Scraper params mapped in {} ms.", scrapers.size(), Duration.between(start, Instant.now()).toMillis());
         if (!scrapers.isEmpty()) {
             // process anything unfinished
             for (ScraperDTO scraperDTO : scrapers) {
@@ -109,10 +109,10 @@ public class SaleService {
                     DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
                     start = Instant.now();
                     List<ScraperResultEntity> scraperResultEntities = scraperResultRepository.findAllByScraperEntity_idAndParamsDoneIsNull(scraperDTO.getId());
-                    log.debug("Scraper result entities fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());
+                    log.debug("{} Scraper result entities fetched in {} ms.", scraperResultEntities.size(), Duration.between(start, Instant.now()).toMillis());
                     start = Instant.now();
                     List<ScraperResultDTO> scraperResultDTOS = entityMapper.scraperResultEntitiesToScraperResultDTOS(scraperResultEntities);
-                    log.debug("Scraper result entities mapped in {} ms.", Duration.between(start, Instant.now()).toMillis());
+                    log.debug("{} Scraper result entities mapped in {} ms.", scraperResultDTOS.size(), Duration.between(start, Instant.now()).toMillis());
                     try {
                         int done = 0;
                         for (ScraperResultDTO scraperResultDTO : scraperResultDTOS) {

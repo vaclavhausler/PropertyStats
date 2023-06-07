@@ -7,13 +7,13 @@
          https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.17.xsd">
 
     <!-- table creation, perms, initial data-->
-    <include relativeToChangelogFile="true" file="changelog/create/v0.0.1-create.xml"/>
-    <include relativeToChangelogFile="true" file="changelog/create/v0.0.2-init-data.xml"/>
+    <include relativeToChangelogFile="true" file="changelog/create/0.0.1-create.xml"/>
+    <include relativeToChangelogFile="true" file="changelog/create/0.0.2-init-data.xml"/>
 
     <!-- database schema updates-->
-    <include relativeToChangelogFile="true" file="changelog/update/v0.1.0-update.xml"/>
+    <include relativeToChangelogFile="true" file="changelog/update/0.1.0-update.xml"/>
 
     <!-- permissions, executed last-->
-    <include relativeToChangelogFile="true" file="changelog/create/v9.9.9-grant-perms.xml"/>
+    <include relativeToChangelogFile="true" file="changelog/create/9.9.9-grant-perms.xml"/>
 
 </databaseChangeLog>

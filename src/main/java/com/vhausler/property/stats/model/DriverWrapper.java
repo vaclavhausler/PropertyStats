@@ -31,12 +31,12 @@ public class DriverWrapper {
     }
 
     public void quit() {
-        log.debug("Driver '{}' is quitting.", name);
+        log.debug("{}: attempting to gracefully quit.", name);
         try {
             wd.close();
             wd.quit();
         } catch (Exception e) {
-            log.error("Quitting driver failed.");
+            log.error("{}: quitting failed.", name, e);
         }
     }
 

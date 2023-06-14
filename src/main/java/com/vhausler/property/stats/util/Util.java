@@ -54,14 +54,14 @@ public class Util {
         WebDriver wd = driverWrapper.getWd();
         // check pagination
         String cityURL = Constants.URL.BASE_URL + locationEntityValue;
-        log.debug("Navigating to {}.", cityURL);
+        log.debug("{}: Navigating to {}.", driverWrapper.getName(), cityURL);
         wd.get(cityURL);
         customWait(500);
-        log.trace("Checking pagination.");
+        log.trace("{}: Checking pagination.", driverWrapper.getName());
         waitUntilElementFound(wd, By.className("property-list")); // NOSONAR
         int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
         int totalNumberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
-        log.debug("Found {} pages to go through.", totalNumberOfPages);
+        log.debug("{}: Found {} pages to go through.", driverWrapper.getName(), totalNumberOfPages);
         driverWrapper.setAvailable(true);
 
         // get all pages we need to scrape
@@ -79,18 +79,18 @@ public class Util {
     }
 
     private static void scrapePageData(DriverWrapper driverWrapper, String pageLink, int index, int numberOfPages, ScraperDTO scraperDTO) {
-        log.trace("Navigating to {}.", pageLink);
+        log.trace("{}: Navigating to {}.", driverWrapper.getName(), pageLink);
         WebDriver wd = driverWrapper.getWd();
         wd.get(pageLink);
         customWait(500);
         waitUntilElementFound(wd, By.className("property-list"));
         List<WebElement> properties = wd.findElements(By.className("property"));
         if (properties.isEmpty()) {
-            log.debug("Found 0 properties, re-scraping page data.");
+            log.debug("{}: Found 0 properties, re-scraping page data.", driverWrapper.getName());
             scrapePageData(driverWrapper, pageLink, index, numberOfPages, scraperDTO);
             return;
         }
-        log.debug("Found {} properties on page {}/{}: {}.", properties.size(), index + 1, numberOfPages, pageLink);
+        log.debug("{}: Found {} properties on page {}/{}: {}.", driverWrapper.getName(), properties.size(), index + 1, numberOfPages, pageLink);
         for (WebElement property : properties) {
             WebElement info = property.findElement(By.className("info"));
             String title = info.findElement(By.className("title")).getText().replaceAll(" ", " "); // NOSONAR

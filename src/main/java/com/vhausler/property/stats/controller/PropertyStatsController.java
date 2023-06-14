@@ -1,6 +1,6 @@
 package com.vhausler.property.stats.controller;
 
-import com.vhausler.property.stats.service.SaleService;
+import com.vhausler.property.stats.service.SRealityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,22 +13,22 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class PropertyStatsController {
 
-    private final SaleService saleService;
+    private final SRealityService SRealityService;
 
     @PostMapping("/register-scrapers")
     public void registerScrapers() {
-        saleService.registerScrapers();
+        SRealityService.registerScrapers();
     }
 
     @Async
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
     public void scrapeHeaders() {
-        saleService.scrapeHeaders();
+        SRealityService.scrapeHeaders();
     }
 
     @Async
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
     public void scrapeParams() {
-        saleService.scrapeParams();
+        SRealityService.scrapeParams();
     }
 }

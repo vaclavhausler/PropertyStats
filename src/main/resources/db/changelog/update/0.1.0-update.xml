@@ -23,4 +23,15 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add-scraper-type-column-to-scraper" author="vhausler">
+        <addColumn tableName="scraper">
+            <column name="scraper_type_id" type="varchar">
+                <constraints foreignKeyName="fk_scraper_type_id"
+                             referencedTableName="scraper_type"
+                             referencedColumnNames="id"
+                             nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

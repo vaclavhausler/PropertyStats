@@ -24,9 +24,11 @@ public class ScraperEntity {
     @Basic
     @Column(name = "created")
     private Timestamp created;
+
     @Basic
     @Column(name = "headers_done")
     private Timestamp headersDone;
+
     @Basic
     @Column(name = "params_done")
     private Timestamp paramsDone;
@@ -34,4 +36,8 @@ public class ScraperEntity {
     @ToString.Exclude
     @OneToMany(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY, mappedBy = "scraperEntity")
     private List<ScraperResultEntity> scraperResultEntities;
+
+    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
+    @JoinColumn(name = "scraper_type_id", referencedColumnName = "id")
+    private ScraperTypeEntity scraperTypeEntity;
 }

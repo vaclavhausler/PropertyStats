@@ -1,13 +1,7 @@
 package com.vhausler.property.stats.model.mapper;
 
-import com.vhausler.property.stats.model.dto.LocationDTO;
-import com.vhausler.property.stats.model.dto.ParameterDTO;
-import com.vhausler.property.stats.model.dto.ScraperDTO;
-import com.vhausler.property.stats.model.dto.ScraperResultDTO;
-import com.vhausler.property.stats.model.entity.LocationEntity;
-import com.vhausler.property.stats.model.entity.ParameterEntity;
-import com.vhausler.property.stats.model.entity.ScraperEntity;
-import com.vhausler.property.stats.model.entity.ScraperResultEntity;
+import com.vhausler.property.stats.model.dto.*;
+import com.vhausler.property.stats.model.entity.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -25,6 +19,7 @@ public interface EntityMapper {
     List<ScraperDTO> scraperEntitiesToScraperDTOS(List<ScraperEntity> scraperEntities);
 
     @Mapping(target = "locationId", source = "locationEntity.id")
+    @Mapping(target = "scraperTypeDTO", source = "scraperTypeEntity")
     @Mapping(target = "scraperResultDTOS", source = "scraperResultEntities", ignore = true)
     ScraperDTO scraperEntityToScraperDTO(ScraperEntity scraperEntity);
 
@@ -40,6 +35,7 @@ public interface EntityMapper {
     ParameterDTO parameterEntityToParameterDTO(ParameterEntity parameterEntity);
 
     @Mapping(target = "locationEntity.id", source = "locationId")
+    @Mapping(target = "scraperTypeEntity", source = "scraperTypeDTO")
     @Mapping(target = "scraperResultEntities", source = "scraperResultDTOS")
     ScraperEntity scraperDTOToScraperEntity(ScraperDTO scraperDTO);
 
@@ -53,4 +49,6 @@ public interface EntityMapper {
 
     @Mapping(target = "scraperResult.id", source = "scraperResultId")
     ParameterEntity parameterDTOToParameterEntity(ParameterDTO parameterDTO);
+
+    List<ScraperTypeDTO> scraperTypeEntitiesToScraperTypeDTOS(List<ScraperTypeEntity> scraperTypeEntities);
 }

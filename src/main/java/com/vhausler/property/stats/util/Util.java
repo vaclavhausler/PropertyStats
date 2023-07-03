@@ -53,14 +53,19 @@ public class Util {
     public static void scrapePropertyHeaders(DriverWrapper driverWrapper, ScraperDTO scraperDTO, String locationEntityValue) {
         WebDriver wd = driverWrapper.getWd();
         // check pagination
-        String cityURL = Constants.URL.BASE_URL + locationEntityValue;
+        String cityURL = Constants.URL.BASE_SEARCH_URL.replace("${searchValue}", scraperDTO.getScraperTypeDTO().getSearchValue()) + locationEntityValue;
         log.debug("{}: Navigating to {}.", driverWrapper.getName(), cityURL);
         wd.get(cityURL);
         customWait(500);
         log.trace("{}: Checking pagination.", driverWrapper.getName());
         waitUntilElementFound(wd, By.className("property-list")); // NOSONAR
-        int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
-        int totalNumberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
+        int totalNumberOfPages;
+        try {
+            int totalNumberOfProperties = Integer.parseInt(wd.findElement(By.cssSelector("div[paging='paging']")).findElement(By.cssSelector("span:last-of-type")).getText().replaceAll(" ", "")); // NOSONAR
+            totalNumberOfPages = (int) Math.ceil((double) totalNumberOfProperties / (double) 60);
+        } catch (NoSuchElementException e) {
+            totalNumberOfPages = 1;
+        }
         log.debug("{}: Found {} pages to go through.", driverWrapper.getName(), totalNumberOfPages);
         driverWrapper.setAvailable(true);
 
@@ -86,7 +91,15 @@ public class Util {
         waitUntilElementFound(wd, By.className("property-list"));
         List<WebElement> properties = wd.findElements(By.className("property"));
         if (properties.isEmpty()) {
-            log.debug("{}: Found 0 properties, re-scraping page data.", driverWrapper.getName());
+
+            if (consecutiveFails > 3) {
+                consecutiveFails = 0;
+                return;
+            } else {
+                consecutiveFails++;
+            }
+
+            log.debug("{}: Found 0 properties, re-scraping page data attempt {}.", driverWrapper.getName(), consecutiveFails + 1);
             scrapePageData(driverWrapper, pageLink, index, numberOfPages, scraperDTO);
             return;
         }
@@ -97,7 +110,7 @@ public class Util {
             Integer squareMeters = getSquareMeters(title);
             String address = info.findElement(By.className("locality")).getText().replaceAll(" ", " "); // NOSONAR
             Integer price = getPrice(info.findElement(By.className("price")).getText());
-            Integer pricePerSquareMeter = squareMeters == null || price == null ? null : price / squareMeters;
+            Integer pricePerSquareMeter = squareMeters == null || squareMeters == 0 || price == null ? null : price / squareMeters;
             String link = info.findElement(By.cssSelector("a[class='title']")).getAttribute("href");
             if (price != null && pricePerSquareMeter != null) {
                 ScraperResultDTO scraperResultDTO = new ScraperResultDTO();
@@ -212,12 +225,17 @@ public class Util {
      * @param price e. g. 2 750 000 Kč
      * @return the parsed price from the string or null in case anything fails
      */
-    private static Integer getPrice(String price) {
-        Integer result;
+    public static Integer getPrice(String price) {
+        Integer result = null;
         try {
-            result = Integer.parseInt(price.replaceAll(" ", "").replaceAll("Kč", "")); // NOSONAR
+            String tmp = price;
+            if (tmp.contains("Kč")) {
+                tmp = tmp.replaceAll(" ", ""); // NOSONAR
+                tmp = tmp.substring(0, tmp.indexOf("Kč"));
+                result = Integer.parseInt(tmp);
+            }
         } catch (Exception e) {
-            result = null;
+            throw new IllegalStateException(String.format("Failed to parse the price: %s", price));
         }
         return result;
     }
@@ -286,11 +304,11 @@ public class Util {
      * Adjusts the result size from 20 to 60 per page. Persists through the whole scraping. It's possible that this value is stored in another cookie,
      * so there could be a workaround and a potential perf improvement for this.
      */
-    public static void increaseResultSize(WebDriver wd) {
+    public static void increaseResultSize(WebDriver wd, String searchValue) {
         log.trace("Increasing result size.");
 
         // navigate to a site with results
-        wd.get(Constants.URL.BASE_URL + Constants.CITY.PRIBRAM);
+        wd.get(Constants.URL.BASE_SEARCH_URL.replace("${searchValue}", searchValue) + Constants.CITY.PRIBRAM);
         customWait(500);
         waitUntilElementFound(wd, By.className("property-list"));
 
@@ -311,9 +329,9 @@ public class Util {
         log.trace("Dealing with cookies.");
         Cookie consentCookie = Util.getCookie(Constants.Cookie.CONSENT);
         log.trace("Navigating to domain.");
-        wd.get(Constants.URL.BASE_URL + "/404");
+        wd.get(Constants.URL.BASE_SETUP_URL + "/404");
         customWait(2000);
-        wd.get(Constants.URL.BASE_URL + "/404");
+        wd.get(Constants.URL.BASE_SETUP_URL + "/404");
         waitUntilElementFound(wd, By.className("error-description"));
         wd.manage().deleteAllCookies();
         log.trace("Adding cookie.");

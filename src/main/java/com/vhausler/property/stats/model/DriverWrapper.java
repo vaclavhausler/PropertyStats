@@ -2,6 +2,7 @@ package com.vhausler.property.stats.model;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.NoSuchSessionException;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
@@ -35,6 +36,8 @@ public class DriverWrapper {
         try {
             wd.close();
             wd.quit();
+        } catch (NoSuchSessionException ignore) {
+            // ignore
         } catch (Exception e) {
             log.error("{}: quitting failed.", name, e);
         }

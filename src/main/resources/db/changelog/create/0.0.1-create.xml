@@ -122,4 +122,17 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="create-scraper-type-table" author="vhausler">
+        <createTable tableName="scraper_type">
+            <column name="id" type="varchar(50)">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_scraper_type"
+                             nullable="false"/>
+            </column>
+            <column name="search_value" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
 </databaseChangeLog>

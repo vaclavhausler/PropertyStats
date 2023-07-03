@@ -5,13 +5,16 @@ import com.vhausler.property.stats.model.DriverWrapper;
 import com.vhausler.property.stats.model.dto.ParameterDTO;
 import com.vhausler.property.stats.model.dto.ScraperDTO;
 import com.vhausler.property.stats.model.dto.ScraperResultDTO;
+import com.vhausler.property.stats.model.dto.ScraperTypeDTO;
 import com.vhausler.property.stats.model.entity.LocationEntity;
 import com.vhausler.property.stats.model.entity.ScraperEntity;
 import com.vhausler.property.stats.model.entity.ScraperResultEntity;
+import com.vhausler.property.stats.model.entity.ScraperTypeEntity;
 import com.vhausler.property.stats.model.mapper.EntityMapper;
 import com.vhausler.property.stats.model.repository.LocationRepository;
 import com.vhausler.property.stats.model.repository.ScraperRepository;
 import com.vhausler.property.stats.model.repository.ScraperResultRepository;
+import com.vhausler.property.stats.model.repository.ScraperTypeRepository;
 import com.vhausler.property.stats.util.Util;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -41,15 +44,29 @@ public class SRealityService {
     private final ScraperService scraperService;
     private final ScraperRepository scraperRepository;
     private final LocationRepository locationRepository;
+    private final ScraperTypeRepository scraperTypeRepository;
     private final ScraperResultRepository scraperResultRepository;
     private final ConfigProperties.WebDriverProperties webDriverProperties;
+    private final ConfigProperties.PropertyStatsProperties propertyStatsProperties;
 
     // parameter cache
     private final AtomicInteger scraperResultCacheCounter = new AtomicInteger(0);
+
+    /*
+        Find all scraper results for the current day and add them to the scraper result cache. Maybe in a separate thread?
+     */
     private final Map<String, ScraperResultDTO> scraperResultCache = Collections.synchronizedMap(new HashMap<>()); // TODO implement slow loading cache? Paging?
 
-    public void registerScrapers() {
+    public void registerScrapers(String scraperTypeId) {
         log.trace("Started creating scraper headers.");
+
+        Optional<ScraperTypeEntity> scraperTypeOpt = scraperTypeRepository.findById(scraperTypeId);
+        if (scraperTypeOpt.isEmpty()) {
+            throw new IllegalStateException(String.format("Scraper type for id: %s not found.", scraperTypeId));
+        }
+
+        ScraperTypeEntity scraperTypeEntity = scraperTypeOpt.get();
+
         List<LocationEntity> allLocationEntities = locationRepository.findAll();
         log.trace("Locations found: {}.", allLocationEntities.size());
         for (LocationEntity locationEntity : allLocationEntities) {
@@ -58,6 +75,7 @@ public class SRealityService {
             scraperEntity.setLocationEntity(locationEntity);
             log.debug("Creating scraper entity: {}.", scraperEntity);
             scraperEntity.setCreated(getCurrentTimestamp());
+            scraperEntity.setScraperTypeEntity(scraperTypeEntity);
             scraperRepository.save(scraperEntity);
         }
         log.trace("Finished creating scraper headers.");
@@ -67,6 +85,10 @@ public class SRealityService {
         log.debug("Started scraping offers.");
         Instant start = Instant.now();
         List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNull();
+        if (scraperEntities.isEmpty()) {
+            log.debug("Nothing to process.");
+            return;
+        }
         log.debug("Scraper headers fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());
         start = Instant.now();
         List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperEntities);
@@ -78,13 +100,13 @@ public class SRealityService {
             Collection<ScraperDTO> scraperDTOS = Collections.synchronizedCollection(scrapers);
 
             // executor service
-            ExecutorService pool = Executors.newFixedThreadPool(6);
+            ExecutorService pool = Executors.newFixedThreadPool(propertyStatsProperties.getHeadersThreadCount());
 
             // process anything unfinished
             for (ScraperDTO scraperDTO : scraperDTOS) {
                 if (scraperDTO.getHeadersDone() == null) {
                     Runnable r = () -> {
-                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
+                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless(), scraperDTO.getScraperTypeDTO().getSearchValue());
                         log.debug("{}: Scraping headers for: {}.", driverWrapper.getName(), scraperDTO.getLocationId());
                         try {
                             Optional<LocationEntity> locationEntityOptional = locationRepository.findById(scraperDTO.getLocationId());
@@ -126,7 +148,18 @@ public class SRealityService {
     public void scrapeParams() { // NOSONAR
         log.debug("Started scraping parameters for scraper results.");
         Instant start = Instant.now();
-        List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNotNullAndParamsDoneIsNull();
+        // make sure that headers are done, return if not
+        List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNull();
+        if (!scraperEntities.isEmpty()) {
+            log.debug("Headers not done, skipping.");
+            return;
+        }
+
+        scraperEntities = scraperRepository.findAllByHeadersDoneIsNotNullAndParamsDoneIsNull();
+        if (scraperEntities.isEmpty()) {
+            log.debug("Nothing to process.");
+            return;
+        }
         log.debug("{} scraper results to process fetched in {} ms.", scraperEntities.size(), Duration.between(start, Instant.now()).toMillis());
         start = Instant.now();
         List<ScraperDTO> scrapers = entityMapper.scraperEntitiesToScraperDTOS(scraperEntities);
@@ -138,13 +171,13 @@ public class SRealityService {
             Collection<ScraperDTO> scraperDTOS = Collections.synchronizedCollection(scrapers);
 
             // executor service
-            ExecutorService pool = Executors.newFixedThreadPool(6);
+            ExecutorService pool = Executors.newFixedThreadPool(propertyStatsProperties.getParamsThreadCount());
 
             // process anything unfinished
             for (ScraperDTO scraperDTO : scraperDTOS) {
                 if (scraperDTO.getParamsDone() == null) {
                     Runnable r = () -> {
-                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless());
+                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless(), scraperDTO.getScraperTypeDTO().getSearchValue());
                         log.debug("{}: Scraping params for scraper entity: {}.", driverWrapper.getName(), scraperDTO);
                         Instant start1 = Instant.now();
                         List<ScraperResultEntity> scraperResultEntities = scraperResultRepository.findAllByScraperEntity_idAndParamsDoneIsNull(scraperDTO.getId());
@@ -208,5 +241,9 @@ public class SRealityService {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    public List<ScraperTypeDTO> getScraperTypes() {
+        return entityMapper.scraperTypeEntitiesToScraperTypeDTOS((List<ScraperTypeEntity>) scraperTypeRepository.findAll());
     }
 }

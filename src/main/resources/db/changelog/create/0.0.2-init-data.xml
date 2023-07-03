@@ -239,4 +239,50 @@
         </insert>
     </changeSet>
 
+    <changeSet id="populate-scraper-type" author="vhausler">
+        <insert tableName="scraper_type">
+            <column name="id" value="BYTY_PRODEJ"/>
+            <column name="search_value" value="prodej/byty"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="DOMY_PRODEJ"/>
+            <column name="search_value" value="prodej/domy"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="POZEMKY_PRODEJ"/>
+            <column name="search_value" value="prodej/pozemky"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="KOMERCNI_PRODEJ"/>
+            <column name="search_value" value="prodej/komercni"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="OSTATNI_PRODEJ"/>
+            <column name="search_value" value="prodej/ostatni"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="populate-scraper-type-2" author="vhausler">
+        <insert tableName="scraper_type">
+            <column name="id" value="BYTY_PRONAJEM"/>
+            <column name="search_value" value="pronajem/byty"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="DOMY_PRONAJEM"/>
+            <column name="search_value" value="pronajem/domy"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="POZEMKY_PRONAJEM"/>
+            <column name="search_value" value="pronajem/pozemky"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="KOMERCNI_PRONAJEM"/>
+            <column name="search_value" value="pronajem/komercni"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="OSTATNI_PRONAJEM"/>
+            <column name="search_value" value="pronajem/ostatni"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

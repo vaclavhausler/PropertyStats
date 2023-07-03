@@ -24,4 +24,19 @@ public class ConfigProperties {
         @NotNull
         private String pathToFirefoxExecutable;
     }
+
+    @Bean
+    @Validated
+    @ConfigurationProperties("property-stats")
+    public PropertyStatsProperties propertyStatsProperties() {
+        return new PropertyStatsProperties();
+    }
+
+    @Data
+    public static class PropertyStatsProperties {
+        @NotNull
+        private Integer headersThreadCount;
+        @NotNull
+        private Integer paramsThreadCount;
+    }
 }

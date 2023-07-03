@@ -22,7 +22,7 @@ public class DriverService {
 
     private final ConfigProperties.WebDriverProperties webDriverProperties;
 
-    public DriverWrapper setupWebDriver(boolean headless) {
+    public DriverWrapper setupWebDriver(boolean headless, String searchValue) {
         Instant start = Instant.now();
         WebDriver wd;
         FirefoxOptions options = new FirefoxOptions();
@@ -35,7 +35,7 @@ public class DriverService {
         wd.manage().window().maximize();
 
         dealWithCookies(wd);
-        increaseResultSize(wd);
+        increaseResultSize(wd, searchValue);
         DriverWrapper driverWrapper = new DriverWrapper(wd);
 
         log.debug("New driver '{}' initialized in {} sec.", driverWrapper.getName(), Duration.between(start, Instant.now()).getSeconds());

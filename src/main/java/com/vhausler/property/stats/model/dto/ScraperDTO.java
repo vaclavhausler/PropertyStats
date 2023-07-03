@@ -15,4 +15,5 @@ public class ScraperDTO {
     private Timestamp paramsDone;
     @ToString.Exclude
     private List<ScraperResultDTO> scraperResultDTOS;
+    private ScraperTypeDTO scraperTypeDTO;
 }

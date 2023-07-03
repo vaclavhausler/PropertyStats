@@ -48,6 +48,6 @@ public class ScraperResultEntity {
     private Timestamp paramsDone;
 
     @ToString.Exclude
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperResult")
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperResultEntity")
     private List<ParameterEntity> parameterEntities;
 }

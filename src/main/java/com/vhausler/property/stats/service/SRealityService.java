@@ -11,14 +11,13 @@ import com.vhausler.property.stats.model.entity.ScraperEntity;
 import com.vhausler.property.stats.model.entity.ScraperResultEntity;
 import com.vhausler.property.stats.model.entity.ScraperTypeEntity;
 import com.vhausler.property.stats.model.mapper.EntityMapper;
-import com.vhausler.property.stats.model.repository.LocationRepository;
-import com.vhausler.property.stats.model.repository.ScraperRepository;
-import com.vhausler.property.stats.model.repository.ScraperResultRepository;
-import com.vhausler.property.stats.model.repository.ScraperTypeRepository;
+import com.vhausler.property.stats.model.repository.*;
 import com.vhausler.property.stats.util.Util;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -38,14 +37,21 @@ import static com.vhausler.property.stats.util.Util.getCurrentTimestamp;
 @RequiredArgsConstructor
 public class SRealityService {
 
-
+    // mapper
     private final EntityMapper entityMapper;
+
+    // service
     private final DriverService driverService;
     private final ScraperService scraperService;
+
+    // repository
     private final ScraperRepository scraperRepository;
     private final LocationRepository locationRepository;
+    private final ParameterRepository parameterRepository;
     private final ScraperTypeRepository scraperTypeRepository;
     private final ScraperResultRepository scraperResultRepository;
+
+    // config props
     private final ConfigProperties.WebDriverProperties webDriverProperties;
     private final ConfigProperties.PropertyStatsProperties propertyStatsProperties;
 
@@ -148,6 +154,7 @@ public class SRealityService {
     public void scrapeParams() { // NOSONAR
         log.debug("Started scraping parameters for scraper results.");
         Instant start = Instant.now();
+
         // make sure that headers are done, return if not
         List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNull();
         if (!scraperEntities.isEmpty()) {
@@ -173,6 +180,9 @@ public class SRealityService {
             // executor service
             ExecutorService pool = Executors.newFixedThreadPool(propertyStatsProperties.getParamsThreadCount());
 
+            // load the cache
+            pool.execute(this::loadScraperResultDTOCache);
+
             // process anything unfinished
             for (ScraperDTO scraperDTO : scraperDTOS) {
                 if (scraperDTO.getParamsDone() == null) {
@@ -197,13 +207,18 @@ public class SRealityService {
                                         ScraperResultDTO cachedScraperResult = scraperResultCache.get(link);
                                         scraperResultDTO.setAvailable(cachedScraperResult.isAvailable());
                                         scraperResultDTO.setParameterDTOS(cachedScraperResult.getParameterDTOS());
+                                        if (scraperResultDTO.getParameterDTOS() == null) {
+                                            scraperResultDTO.setParameterDTOS(entityMapper.parameterEntitiesToParameterDTOS(parameterRepository.findAllByScraperResultEntity_id(scraperResultDTO.getId())));
+                                        }
                                         for (ParameterDTO parameterDTO : scraperResultDTO.getParameterDTOS()) {
                                             // set the scraper result id to the parameter
                                             parameterDTO.setScraperResultId(scraperResultDTO.getId());
                                         }
 
                                         scraperResultCacheCounter.incrementAndGet();
-                                        log.debug("Cache used: {} times.", scraperResultCacheCounter.get());
+                                        if (scraperResultCacheCounter.get() % 10 == 0) {
+                                            log.debug("Cache used: {} times.", scraperResultCacheCounter.get());
+                                        }
 
                                         scraperService.setParamsDone(scraperResultDTO);
                                     } else {
@@ -221,7 +236,7 @@ public class SRealityService {
                             }
                             scraperService.setParamsDone(scraperDTO);
                         } catch (Exception e) {
-                            log.error("Exception scraping property params. Restarting the webdriver.");
+                            log.error("Exception scraping property params: {}. Restarting the webdriver.", e.getMessage());
                         } finally {
                             CompletableFuture.runAsync(driverWrapper::quit);
                         }
@@ -245,5 +260,18 @@ public class SRealityService {
 
     public List<ScraperTypeDTO> getScraperTypes() {
         return entityMapper.scraperTypeEntitiesToScraperTypeDTOS((List<ScraperTypeEntity>) scraperTypeRepository.findAll());
+    }
+
+    public void loadScraperResultDTOCache() {
+        log.debug("Loading scraper result cache.");
+        Instant start = Instant.now();
+        Page<ScraperResultEntity> linksPage = scraperResultRepository.findDistinctLinks(Pageable.ofSize(propertyStatsProperties.getBatchSize()));
+        linksPage.get().forEach(e -> scraperResultCache.put(e.getLink(), entityMapper.scraperResultEntityToScraperResultDTO(e)));
+        while (linksPage.hasNext()) {
+            linksPage = scraperResultRepository.findDistinctLinks(linksPage.nextPageable());
+            linksPage.get().forEach(e -> scraperResultCache.put(e.getLink(), entityMapper.scraperResultEntityToScraperResultDTO(e)));
+            log.debug("Scraper result cache contains: {} items.", scraperResultCache.size());
+        }
+        log.debug("Finished loading scraper result cache in {} ms.", Duration.between(start, Instant.now()).toMillis());
     }
 }

@@ -38,5 +38,7 @@ public class ConfigProperties {
         private Integer headersThreadCount;
         @NotNull
         private Integer paramsThreadCount;
+        @NotNull
+        private Integer batchSize;
     }
 }

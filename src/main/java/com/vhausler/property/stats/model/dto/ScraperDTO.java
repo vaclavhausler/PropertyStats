@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 public class ScraperDTO {
-    private int id;
+    private long id;
     private String locationId;
     private Timestamp created;
     private Timestamp headersDone;

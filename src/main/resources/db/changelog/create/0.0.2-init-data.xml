@@ -285,4 +285,15 @@
         </insert>
     </changeSet>
 
+    <changeSet id="populate-scraper-type-3" author="vhausler">
+        <insert tableName="scraper_type">
+            <column name="id" value="POZEMKY_ZAHRADY_PRODEJ"/>
+            <column name="search_value" value="prodej/pozemky/zahrady"/>
+        </insert>
+        <insert tableName="scraper_type">
+            <column name="id" value="POZEMKY_ZAHRADY_PRONAJEM"/>
+            <column name="search_value" value="pronajem/pozemky/zahrady"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

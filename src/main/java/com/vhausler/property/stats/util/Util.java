@@ -235,7 +235,7 @@ public class Util {
                 result = Integer.parseInt(tmp);
             }
         } catch (Exception e) {
-            throw new IllegalStateException(String.format("Failed to parse the price: %s", price));
+            log.error("Failed to parse the price: {}.", price);
         }
         return result;
     }

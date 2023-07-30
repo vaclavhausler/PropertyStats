@@ -2,10 +2,7 @@ package com.vhausler.property.stats.service;
 
 import com.vhausler.property.stats.config.ConfigProperties;
 import com.vhausler.property.stats.model.DriverWrapper;
-import com.vhausler.property.stats.model.dto.ParameterDTO;
-import com.vhausler.property.stats.model.dto.ScraperDTO;
-import com.vhausler.property.stats.model.dto.ScraperResultDTO;
-import com.vhausler.property.stats.model.dto.ScraperTypeDTO;
+import com.vhausler.property.stats.model.dto.*;
 import com.vhausler.property.stats.model.entity.LocationEntity;
 import com.vhausler.property.stats.model.entity.ScraperEntity;
 import com.vhausler.property.stats.model.entity.ScraperResultEntity;
@@ -57,42 +54,40 @@ public class SRealityService {
 
     // parameter cache
     private final AtomicInteger scraperResultCacheCounter = new AtomicInteger(0);
+    private final Map<String, ScraperResultDTO> scraperResultCache = Collections.synchronizedMap(new HashMap<>());
 
-    /*
-        Find all scraper results for the current day and add them to the scraper result cache. Maybe in a separate thread?
-     */
-    private final Map<String, ScraperResultDTO> scraperResultCache = Collections.synchronizedMap(new HashMap<>()); // TODO implement slow loading cache? Paging?
+    public void registerScrapers(ScraperRegistrationDTO scraperRegistrationDTO) {
+        for (String scraperTypeId : scraperRegistrationDTO.getScraperTypeIds()) {
+            log.trace("Started creating scraper headers.");
 
-    public void registerScrapers(String scraperTypeId) {
-        log.trace("Started creating scraper headers.");
+            Optional<ScraperTypeEntity> scraperTypeOpt = scraperTypeRepository.findById(scraperTypeId);
+            if (scraperTypeOpt.isEmpty()) {
+                throw new IllegalStateException(String.format("Scraper type for id: %s not found.", scraperTypeId));
+            }
 
-        Optional<ScraperTypeEntity> scraperTypeOpt = scraperTypeRepository.findById(scraperTypeId);
-        if (scraperTypeOpt.isEmpty()) {
-            throw new IllegalStateException(String.format("Scraper type for id: %s not found.", scraperTypeId));
+            ScraperTypeEntity scraperTypeEntity = scraperTypeOpt.get();
+
+            List<LocationEntity> allLocationEntities = locationRepository.findAll();
+            log.trace("Locations found: {}.", allLocationEntities.size());
+            for (LocationEntity locationEntity : allLocationEntities) {
+                // create new scraper entity
+                ScraperEntity scraperEntity = new ScraperEntity();
+                scraperEntity.setLocationEntity(locationEntity);
+                log.debug("Creating scraper entity: {}.", scraperEntity);
+                scraperEntity.setCreated(getCurrentTimestamp());
+                scraperEntity.setScraperTypeEntity(scraperTypeEntity);
+                scraperRepository.save(scraperEntity);
+            }
+            log.trace("Finished creating scraper headers.");
         }
-
-        ScraperTypeEntity scraperTypeEntity = scraperTypeOpt.get();
-
-        List<LocationEntity> allLocationEntities = locationRepository.findAll();
-        log.trace("Locations found: {}.", allLocationEntities.size());
-        for (LocationEntity locationEntity : allLocationEntities) {
-            // create new scraper entity
-            ScraperEntity scraperEntity = new ScraperEntity();
-            scraperEntity.setLocationEntity(locationEntity);
-            log.debug("Creating scraper entity: {}.", scraperEntity);
-            scraperEntity.setCreated(getCurrentTimestamp());
-            scraperEntity.setScraperTypeEntity(scraperTypeEntity);
-            scraperRepository.save(scraperEntity);
-        }
-        log.trace("Finished creating scraper headers.");
     }
 
     public void scrapeHeaders() { // NOSONAR
-        log.debug("Started scraping offers.");
+        log.trace("Started scraping offers.");
         Instant start = Instant.now();
         List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNull();
         if (scraperEntities.isEmpty()) {
-            log.debug("Nothing to process.");
+            log.trace("Nothing to process.");
             return;
         }
         log.debug("Scraper headers fetched in {} ms.", Duration.between(start, Instant.now()).toMillis());

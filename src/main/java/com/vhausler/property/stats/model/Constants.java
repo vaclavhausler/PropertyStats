@@ -22,6 +22,7 @@ public class Constants {
         }
 
         // this could've potentially been a reference to a json stored in resources
+        @SuppressWarnings("SpellCheckingInspection")
         public static final String CONSENT = "{" +
                 "\"name\":\"euconsent-v2\"," +
                 "\"value\":\"CPluvIAPluvIAD3ACCCSCzCgAAAAAEPAAATIAAAQugTgALAAqABcADIAIAAZAA0ABzAEQARQAmABPACqAGIAPwAhIBEAESAI4ATgApQBYgDLAGaAO4AfoBCACLAFoALqAYEA1gBtAD5AJtAWoAvMBkgDSgGpgQuAAAAA.YAAAAAAAAAAA\"," +

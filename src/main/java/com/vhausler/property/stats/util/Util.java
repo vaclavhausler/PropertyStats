@@ -41,7 +41,7 @@ import static org.apache.logging.log4j.util.Strings.isEmpty;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Util {
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
-    public static String NO_OFFER_FOUND_EXCEPTION = "no-offer-found-exception";
+    public static final String NO_OFFER_FOUND_EXCEPTION = "no-offer-found-exception";
 
     /**
      * Scrapes the city url for any properties. Uses dynamic waiting to load the property list, understands the pagination and goes through all the pages.

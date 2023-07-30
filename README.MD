@@ -20,7 +20,7 @@ Note: gecko driver releases: https://github.com/mozilla/geckodriver/releases
 
 ## Avoiding consent via cookies
 
-- sreality.cz redirects to seznam.cz for GDPR consent, cookie can't be set for the domain sreality.cz while on seznam.cz, the workaround for this is to access any page on sreality.cz domain which loads fast and doesn't trigger the consent
+- sreality.cz redirects to https://seznam.cz for GDPR consent, cookie can't be set for the domain https://sreality.cz while on https://seznam.cz, the workaround for this is to access any page on sreality.cz domain which loads fast and doesn't trigger the consent
   redirect and set the cookie there.
 
 ## Dynamic waiting
@@ -29,7 +29,7 @@ Note: gecko driver releases: https://github.com/mozilla/geckodriver/releases
 
 ## Paging workaround through URL
 
-- Paging through certain sites using buttons can be very frustrating as some of them don't respond to click(), some are fake buttons hooked up to JS and such. Luckily sreality.cz uses 'strana' query param in the URL, so all I had to do was
+- Paging through certain sites using buttons can be very frustrating as some of them don't respond to click(), some are fake buttons hooked up to JS and such. Luckily https://sreality.cz uses 'strana' query param in the URL, so all I had to do was
   calculate the number of pages the scraper has to go through.
 
 ## Messed up source data
@@ -49,5 +49,5 @@ Note: gecko driver releases: https://github.com/mozilla/geckodriver/releases
 
 - Currency as integer and not BigDecimal - intentional. The idea here is statistics, not exact values.
 - Can be easily reworked to support different sites with certain parts of code being common.
-- No DDoS or security dodging needed. Seznam used to have security measures on certain pages like firmy.cz I believe, where they would ban your IP address for a short amount of time if you've made too many requests in a short time. The
+- No DDoS or security dodging needed. Seznam used to have security measures on certain pages like https://firmy.cz I believe, where they would ban your IP address for a short amount of time if you've made too many requests in a short time. The
   workaround for sites like that was to use free third level proxies (they pretend to be you) around the world to dodge bans in order to avoid downtimes.

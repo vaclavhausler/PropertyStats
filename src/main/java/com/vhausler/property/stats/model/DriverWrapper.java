@@ -46,6 +46,4 @@ public class DriverWrapper {
     public boolean isOutdated(long timeout) {
         return Duration.between(created, Instant.now()).getSeconds() > timeout;
     }
-
-
 }

@@ -147,19 +147,19 @@ public class SRealityService {
 
     @Transactional
     public void scrapeParams() { // NOSONAR
-        log.debug("Started scraping parameters for scraper results.");
+        log.trace("Started scraping parameters for scraper results.");
         Instant start = Instant.now();
 
         // make sure that headers are done, return if not
         List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNull();
         if (!scraperEntities.isEmpty()) {
-            log.debug("Headers not done, skipping.");
+            log.trace("Headers not done, skipping.");
             return;
         }
 
         scraperEntities = scraperRepository.findAllByHeadersDoneIsNotNullAndParamsDoneIsNull();
         if (scraperEntities.isEmpty()) {
-            log.debug("Nothing to process.");
+            log.trace("Nothing to process.");
             return;
         }
         log.debug("{} scraper results to process fetched in {} ms.", scraperEntities.size(), Duration.between(start, Instant.now()).toMillis());

@@ -121,6 +121,7 @@ public class Util {
                 scraperResultDTO.setPricePerSquareMeter(pricePerSquareMeter);
                 scraperResultDTO.setLink(link);
                 scraperResultDTO.setCreated(getCurrentTimestamp());
+                scraperResultDTO.setSquareMeters(squareMeters);
 
                 scraperDTO.getScraperResultDTOS().add(scraperResultDTO);
             }
@@ -207,16 +208,44 @@ public class Util {
      * @param title e.g. Prodej bytu 2+1 70 m²
      * @return parsed square meters value or null if none found
      */
-    private static Integer getSquareMeters(String title) {
-        title = title.replaceAll(" ", " "); // NOSONAR
-        if (title.contains("m²")) {
-            String[] split = title.split("m²")[0].split(" ");
-            String strValue = split[split.length - 1];
-            if (!StringUtils.isNullOrEmpty(strValue)) {
-                return Integer.parseInt(strValue);
+    public static Integer getSquareMeters(String title) {
+        title = optionalSplit(title, "+kk", "+1");
+
+        if (title.contains("/")) {
+            title = title.substring(title.indexOf("/") + 4);
+        }
+
+        if (title.contains(",")) {
+            String[] split = title.split(",");
+            int total = 0;
+            for (String s : split) {
+                Integer squareMeters = getSquareMeters(s);
+                if (squareMeters != null) {
+                    total += squareMeters;
+                }
+            }
+            return total;
+        }
+
+        String squareMeters = title.replaceAll("\\D", "");
+        if (!StringUtils.isNullOrEmpty(squareMeters)) {
+            try {
+                return Integer.parseInt(squareMeters);
+            } catch (NumberFormatException e) {
+                log.error("Failed to parse square meters from title: {}.", title);
             }
         }
         return null;
+    }
+
+    private static String optionalSplit(String title, String... splitStrings) {
+        for (String splitString : splitStrings) {
+            if (title.contains(splitString)) {
+                splitString = splitString.replaceAll("[+]", "[+]");
+                title = title.split(splitString)[1];
+            }
+        }
+        return title;
     }
 
     /**

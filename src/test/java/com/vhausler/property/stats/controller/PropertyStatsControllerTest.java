@@ -1,7 +1,7 @@
 package com.vhausler.property.stats.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vhausler.property.stats.model.dto.ScraperRegistrationDTO;
+import com.vhausler.property.stats.model.dto.ScraperRegistrationRequest;
 import com.vhausler.property.stats.service.SRealityService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,23 +33,23 @@ class PropertyStatsControllerTest {
     private SRealityService service;
 
     /**
-     * Tests {@link PropertyStatsController#registerScrapers(ScraperRegistrationDTO)}.
+     * Tests {@link PropertyStatsController#registerScrapers(ScraperRegistrationRequest)}.
      */
     @Test
     void testRegisterScrapers() throws Exception {
         // data
-        ScraperRegistrationDTO scraperRegistrationDTO = new ScraperRegistrationDTO();
-        scraperRegistrationDTO.setScraperTypeIds(List.of("BYTY_PRODEJ", "BYTY_PRONAJEM"));
+        ScraperRegistrationRequest scraperRegistrationRequest = new ScraperRegistrationRequest();
+        scraperRegistrationRequest.setScraperTypeIds(List.of("BYTY_PRODEJ", "BYTY_PRONAJEM"));
 
         // api call
         mvc.perform(post(SCRAPER_REGISTRATION)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(scraperRegistrationDTO))
+                .content(new ObjectMapper().writeValueAsString(scraperRegistrationRequest))
         ).andExpect(status().isOk());
 
         // validation
         verify(service, times(1))
-                .registerScrapers(scraperRegistrationDTO);
+                .registerScrapers(scraperRegistrationRequest);
     }
 
     /**

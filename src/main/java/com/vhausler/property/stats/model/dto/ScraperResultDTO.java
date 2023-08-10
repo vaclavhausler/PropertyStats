@@ -12,11 +12,12 @@ public class ScraperResultDTO {
     private long scraperId;
     private String title;
     private String address;
-    private int price;
-    private int pricePerSquareMeter;
-    private Timestamp created;
     private String link;
+    private int price;
+    private int squareMeters;
+    private int pricePerSquareMeter;
     private boolean available;
+    private Timestamp created;
     private Timestamp paramsDone;
     @ToString.Exclude
     private List<ParameterDTO> parameterDTOS;

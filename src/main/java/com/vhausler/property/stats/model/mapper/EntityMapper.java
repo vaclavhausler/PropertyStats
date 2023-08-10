@@ -43,6 +43,7 @@ public interface EntityMapper {
 
     @Mapping(target = "scraperEntity.id", source = "scraperId")
     @Mapping(target = "parameterEntities", source = "parameterDTOS")
+    @Mapping(target = "squareMeters", source = "squareMeters")
     ScraperResultEntity scraperResultDTOToScraperResultEntity(ScraperResultDTO scraperResultDTO);
 
     List<ParameterEntity> parameterDTOSToParameterEntities(List<ParameterDTO> parameterDTOS);

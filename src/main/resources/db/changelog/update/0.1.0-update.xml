@@ -34,4 +34,12 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add-square-meters-column-to-scraper-result" author="vhausler">
+        <addColumn tableName="scraper_result">
+            <column name="square_meters" type="integer" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

@@ -22,30 +22,15 @@ public class ScraperResultEntity {
     @JoinColumn(name = "scraper_id", referencedColumnName = "id")
     private ScraperEntity scraperEntity;
 
-    @Basic
-    @Column(name = "title")
     private String title;
-    @Basic
-    @Column(name = "address")
-    private String address;
-    @Basic
-    @Column(name = "price")
-    private Integer price;
-    @Basic
-    @Column(name = "price_per_square_meter")
-    private Integer pricePerSquareMeter;
-    @Basic
-    @Column(name = "created")
-    private Timestamp created;
-    @Basic
-    @Column(name = "link")
     private String link;
-    @Basic
-    @Column(name = "available")
-    private boolean available;
-    @Basic
-    @Column(name = "params_done")
+    private String address;
+    private Integer price;
+    private Integer squareMeters;
+    private Integer pricePerSquareMeter;
+    private Timestamp created;
     private Timestamp paramsDone;
+    private boolean available;
 
     @ToString.Exclude
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "scraperResultEntity")

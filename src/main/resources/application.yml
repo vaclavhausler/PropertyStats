@@ -37,5 +37,6 @@ property-stats:
     headless: true
     pathToFirefoxExecutable: 'C:\Program Files\Mozilla Firefox\firefox.exe'
   headersThreadCount: 6
-  paramsThreadCount: 2
+  paramsThreadCount: 6
   batchSize: 15000
+  maintenanceBatchSize: 1500000

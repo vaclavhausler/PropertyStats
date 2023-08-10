@@ -10,7 +10,7 @@ import java.util.List;
 
 @Data
 @Validated
-public class ScraperRegistrationDTO {
+public class ScraperRegistrationRequest {
 
     @NotEmpty
     @ArraySchema(schema = @Schema(description = "List of scraper type ids.", example = "BYTY_PRODEJ"))

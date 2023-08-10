@@ -56,8 +56,8 @@ public class SRealityService {
     private final AtomicInteger scraperResultCacheCounter = new AtomicInteger(0);
     private final Map<String, ScraperResultDTO> scraperResultCache = Collections.synchronizedMap(new HashMap<>());
 
-    public void registerScrapers(ScraperRegistrationDTO scraperRegistrationDTO) {
-        for (String scraperTypeId : scraperRegistrationDTO.getScraperTypeIds()) {
+    public void registerScrapers(ScraperRegistrationRequest scraperRegistrationRequest) {
+        for (String scraperTypeId : scraperRegistrationRequest.getScraperTypeIds()) {
             log.trace("Started creating scraper headers.");
 
             Optional<ScraperTypeEntity> scraperTypeOpt = scraperTypeRepository.findById(scraperTypeId);
@@ -231,7 +231,7 @@ public class SRealityService {
                             }
                             scraperService.setParamsDone(scraperDTO);
                         } catch (Exception e) {
-                            log.error("Exception scraping property params: {}. Restarting the webdriver.", e.getMessage());
+                            log.error("Exception scraping property params: {}. Restarting the webdriver.", e.getMessage(), e);
                         } finally {
                             CompletableFuture.runAsync(driverWrapper::quit);
                         }
@@ -268,5 +268,21 @@ public class SRealityService {
             log.debug("Scraper result cache contains: {} items.", scraperResultCache.size());
         }
         log.debug("Finished loading scraper result cache in {} ms.", Duration.between(start, Instant.now()).toMillis());
+    }
+
+    public void runMaintenance(MaintenanceRequest maintenanceRequest) {
+        Instant start = Instant.now();
+        log.debug("Running maintenance: {}.", maintenanceRequest.getMaintenanceEnumList());
+        List<MaintenanceEnum> maintenanceEnumList = maintenanceRequest.getMaintenanceEnumList();
+        if (maintenanceEnumList.contains(MaintenanceEnum.PRICE_MAINTENANCE)) {
+            scraperService.runPriceMaintenance();
+        }
+        if (maintenanceEnumList.contains(MaintenanceEnum.PRICE_PER_SQUARE_METER_AND_SQUARE_METERS_MAINTENANCE)) {
+            scraperService.runPricePerSquareMeterAndSquareMetersMaintenance();
+        }
+        if (maintenanceEnumList.contains(MaintenanceEnum.SCRAPER_RESULT_DUPLICATES_MAINTENANCE)) {
+            scraperService.runScraperResultDuplicateMaintenance();
+        }
+        log.debug("Maintenance done in {} s.", Duration.between(start, Instant.now()).getSeconds());
     }
 }

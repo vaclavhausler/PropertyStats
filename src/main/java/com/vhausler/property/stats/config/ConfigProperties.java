@@ -40,5 +40,7 @@ public class ConfigProperties {
         private Integer paramsThreadCount;
         @NotNull
         private Integer batchSize;
+        @NotNull
+        private Integer maintenanceBatchSize;
     }
 }

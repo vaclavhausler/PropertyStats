@@ -1,21 +1,31 @@
 package com.vhausler.property.stats.service;
 
+import com.vhausler.property.stats.config.ConfigProperties;
 import com.vhausler.property.stats.model.DriverWrapper;
 import com.vhausler.property.stats.model.dto.ScraperDTO;
 import com.vhausler.property.stats.model.dto.ScraperResultDTO;
 import com.vhausler.property.stats.model.entity.ScraperEntity;
 import com.vhausler.property.stats.model.entity.ScraperResultEntity;
 import com.vhausler.property.stats.model.mapper.EntityMapper;
+import com.vhausler.property.stats.model.repository.ParameterRepository;
 import com.vhausler.property.stats.model.repository.ScraperRepository;
 import com.vhausler.property.stats.model.repository.ScraperResultRepository;
 import com.vhausler.property.stats.util.Util;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.vhausler.property.stats.util.Util.getCurrentTimestamp;
 
@@ -25,8 +35,11 @@ import static com.vhausler.property.stats.util.Util.getCurrentTimestamp;
 public class ScraperService {
 
     private final EntityMapper entityMapper;
+    private final DeletionService deletionService;
     private final ScraperRepository scraperRepository;
+    private final ParameterRepository parameterRepository;
     private final ScraperResultRepository scraperResultRepository;
+    private final ConfigProperties.PropertyStatsProperties propertyStatsProperties;
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void scrapeParams(DriverWrapper driverWrapper, ScraperResultDTO scraperResultDTO) {
@@ -62,5 +75,109 @@ public class ScraperService {
         ScraperResultEntity scraperResultEntity = entityMapper.scraperResultDTOToScraperResultEntity(scraperResultDTO);
         scraperResultRepository.save(scraperResultEntity);
         log.trace("Setting scraper result params done for {}.", scraperResultEntity.getLink());
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void runPriceMaintenance() {
+        Instant start = Instant.now();
+        log.debug("Price maintenance START");
+        AtomicInteger total = new AtomicInteger(0);
+        AtomicInteger totalUpdated = new AtomicInteger(0);
+        int batchSize = propertyStatsProperties.getMaintenanceBatchSize();
+        Pageable pageable = Pageable.ofSize(batchSize);
+        do {
+            Page<ScraperResultEntity> page = scraperResultRepository.findAll(pageable);
+            for (ScraperResultEntity scraperResultEntity : page.getContent()) {
+                // most likely a mistake of adding extra '000'
+                if (scraperResultEntity.getPrice() > 1000000000 && scraperResultEntity.getPrice() % 1000 == 0) {
+                    scraperResultEntity.setPrice(scraperResultEntity.getPrice() / 1000);
+                    totalUpdated.incrementAndGet();
+                }
+            }
+            total.addAndGet(page.getContent().size());
+
+            log.debug("Total processed: {}, total updated: {}.", total.get(), totalUpdated.get());
+
+            pageable = page.nextPageable();
+        } while (pageable.isPaged());
+        log.debug("Price maintenance END in {} s.", Duration.between(start, Instant.now()).toSeconds());
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void runPricePerSquareMeterAndSquareMetersMaintenance() {
+        Instant start = Instant.now();
+        log.debug("Price per square meter and square meters maintenance START");
+        AtomicInteger total = new AtomicInteger(0);
+        AtomicInteger totalUpdated = new AtomicInteger(0);
+        int batchSize = propertyStatsProperties.getMaintenanceBatchSize();
+        Pageable pageable = Pageable.ofSize(batchSize);
+        do {
+            Page<ScraperResultEntity> page = scraperResultRepository.findAll(pageable);
+            for (ScraperResultEntity scraperResultEntity : page.getContent()) {
+                boolean updateRequired = false;
+                String title = scraperResultEntity.getTitle();
+                Integer expectedSquareMeters = Util.getSquareMeters(title);
+                Integer actualSquareMeters = scraperResultEntity.getSquareMeters();
+                if (expectedSquareMeters != null && expectedSquareMeters != 0 && !Objects.equals(actualSquareMeters, expectedSquareMeters)) {
+                    scraperResultEntity.setSquareMeters(expectedSquareMeters);
+                    updateRequired = true;
+                }
+
+                if (scraperResultEntity.getSquareMeters() != 0) {
+                    Integer price = scraperResultEntity.getPrice();
+                    Integer actualPricePerSquareMeter = scraperResultEntity.getPricePerSquareMeter();
+                    Integer expectedPricePerSquareMeter = price / scraperResultEntity.getSquareMeters();
+                    if (expectedPricePerSquareMeter != 0 && !Objects.equals(actualPricePerSquareMeter, expectedPricePerSquareMeter)) {
+                        scraperResultEntity.setPricePerSquareMeter(expectedPricePerSquareMeter);
+                        updateRequired = true;
+                    }
+                }
+                if (updateRequired) {
+                    scraperResultRepository.save(scraperResultEntity);
+                    totalUpdated.incrementAndGet();
+                }
+            }
+            total.addAndGet(page.getContent().size());
+
+            log.debug("Total processed: {}, total updated: {}.", total.get(), totalUpdated.get());
+
+            pageable = page.nextPageable();
+        } while (pageable.isPaged());
+        log.debug("Price per square meter and square meters maintenance END in {} s.", Duration.between(start, Instant.now()).toSeconds());
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void runScraperResultDuplicateMaintenance() {
+        Instant start = Instant.now();
+        log.debug("Scraper result duplicates maintenance START");
+        AtomicInteger total = new AtomicInteger(0);
+
+        List<ScraperResultEntity> deleteList = new ArrayList<>();
+        Map<Pair<Long, String>, ScraperResultEntity> filterMap = new HashMap<>();
+        List<ScraperResultEntity> all = scraperResultRepository.findAll();
+
+        for (ScraperResultEntity scraperResultEntity : all) {
+            long scraperId = scraperResultEntity.getScraperEntity().getId();
+            Pair<Long, String> key = Pair.of(scraperId, scraperResultEntity.getLink());
+            ScraperResultEntity found = filterMap.get(key);
+            if (found == null) {
+                filterMap.put(key, scraperResultEntity);
+            } else {
+                deleteList.add(scraperResultEntity);
+            }
+        }
+        total.addAndGet(all.size());
+
+        log.debug("Total processed: {}, total to delete: {}.", total.get(), deleteList.size());
+
+        int deleteBatchSize = 50000;
+        List<List<ScraperResultEntity>> partitions = ListUtils.partition(deleteList, deleteBatchSize);
+        for (List<ScraperResultEntity> partition : partitions) {
+            Instant start2 = Instant.now();
+            deletionService.deleteScraperResult(partition);
+            log.debug("Deleted {} scraper results in {} ms.", partition.size(), Duration.between(start2, Instant.now()).toMillis());
+        }
+
+        log.debug("Scraper result duplicates maintenance END in {} s.", Duration.between(start, Instant.now()).toSeconds());
     }
 }

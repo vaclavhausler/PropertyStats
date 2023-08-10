@@ -135,4 +135,13 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="create_indices" author="vhausler">
+        <createIndex tableName="scraper_result" indexName="ix_scraper_id">
+            <column name="scraper_id"/>
+        </createIndex>
+        <createIndex tableName="parameter" indexName="ix_scraper_result_id">
+            <column name="scraper_result_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

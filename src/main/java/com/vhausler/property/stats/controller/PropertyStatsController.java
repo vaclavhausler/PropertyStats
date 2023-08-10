@@ -1,6 +1,7 @@
 package com.vhausler.property.stats.controller;
 
-import com.vhausler.property.stats.model.dto.ScraperRegistrationDTO;
+import com.vhausler.property.stats.model.dto.MaintenanceRequest;
+import com.vhausler.property.stats.model.dto.ScraperRegistrationRequest;
 import com.vhausler.property.stats.model.dto.ScraperTypeDTO;
 import com.vhausler.property.stats.service.SRealityService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,8 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.vhausler.property.stats.model.Endpoints.SCRAPER_REGISTRATION;
-import static com.vhausler.property.stats.model.Endpoints.SCRAPER_TYPES;
+import static com.vhausler.property.stats.model.Endpoints.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,8 +39,15 @@ public class PropertyStatsController {
     @Operation(summary = "Register scrapers.", description = "Registers new scrapers to be processed.")
     @ApiResponse(responseCode = "200", description = "Successfully registered.")
     @PostMapping(value = SCRAPER_REGISTRATION, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public void registerScrapers(@RequestBody @Valid ScraperRegistrationDTO scraperRegistrationDTO) {
-        srealityService.registerScrapers(scraperRegistrationDTO);
+    public void registerScrapers(@RequestBody @Valid ScraperRegistrationRequest scraperRegistrationRequest) {
+        srealityService.registerScrapers(scraperRegistrationRequest);
+    }
+
+    @Operation(summary = "Starts a maintenance.", description = "Runs all maintenance operations.")
+    @ApiResponse(responseCode = "200", description = "Successfully started.")
+    @PostMapping(value = MAINTENANCE)
+    public void runMaintenance(@RequestBody @Valid MaintenanceRequest maintenanceRequest) {
+        srealityService.runMaintenance(maintenanceRequest);
     }
 
     @Async

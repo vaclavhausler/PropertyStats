@@ -28,4 +28,6 @@ public interface ScraperResultRepository extends JpaRepository<ScraperResultEnti
     @Query(nativeQuery = true,
             value = "DELETE FROM property_stats.scraper_result WHERE id IN (:scraperResultIds)")
     void deleteByIdIn(@Param("scraperResultIds") List<Long> scraperResultIds);
+
+    List<ScraperResultEntity> findAllByParamsDoneIsNull();
 }

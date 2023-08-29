@@ -10,10 +10,10 @@ spring:
         size: 1
   application:
     name: property-stats
-  datasource:
-    url: jdbc:postgresql://localhost:5432/property_stats?currentSchema=property_stats&gssEncMode=disable
-    username: postgres
-    password: admin
+#  datasource:
+#    url: jdbc:postgresql://localhost:5432/property_stats?currentSchema=property_stats&gssEncMode=disable
+#    username: postgres
+#    password: admin
   jpa:
     show-sql: false
     properties:

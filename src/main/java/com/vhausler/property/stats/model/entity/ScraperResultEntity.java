@@ -1,5 +1,7 @@
 package com.vhausler.property.stats.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -9,13 +11,13 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "scraper_result", schema = "property_stats", catalog = "property_stats")
+@Table(name = "scraper_result")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = ScraperResultEntity.class)
 public class ScraperResultEntity {
 
     @Id
-    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @ToString.Exclude
     @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)

@@ -1,6 +1,7 @@
 package com.vhausler.property.stats.model.entity;
 
-import jakarta.persistence.Column;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -8,13 +9,11 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "scraper_type", schema = "property_stats", catalog = "property_stats")
+@Table(name = "scraper_type")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = ScraperTypeEntity.class)
 public class ScraperTypeEntity {
 
     @Id
-    @Column
     private String id;
-
-    @Column
     private String searchValue;
 }

@@ -1,26 +1,22 @@
 package com.vhausler.property.stats.model.entity;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "location", schema = "property_stats", catalog = "property_stats")
+@Table(name = "location")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = LocationEntity.class)
 public class LocationEntity {
 
     @Id
-    @Column(name = "id")
     private String id;
-    @Basic
-    @Column(name = "value")
     private String value;
-    @Basic
-    @Column(name = "region")
     private boolean region;
-    @Basic
-    @Column(name = "regional_city")
     private boolean regionalCity;
-    @Basic
-    @Column(name = "city")
     private boolean city;
 }

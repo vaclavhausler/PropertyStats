@@ -1,5 +1,7 @@
 package com.vhausler.property.stats.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vhausler.property.stats.config.ConfigProperties;
 import com.vhausler.property.stats.model.DriverWrapper;
 import com.vhausler.property.stats.model.dto.*;
@@ -8,6 +10,7 @@ import com.vhausler.property.stats.model.entity.ScraperEntity;
 import com.vhausler.property.stats.model.entity.ScraperResultEntity;
 import com.vhausler.property.stats.model.entity.ScraperTypeEntity;
 import com.vhausler.property.stats.model.mapper.EntityMapper;
+import com.vhausler.property.stats.model.migration.MigrationPackage;
 import com.vhausler.property.stats.model.repository.*;
 import com.vhausler.property.stats.util.Util;
 import jakarta.transaction.Transactional;
@@ -107,7 +110,7 @@ public class SRealityService {
             for (ScraperDTO scraperDTO : scraperDTOS) {
                 if (scraperDTO.getHeadersDone() == null) {
                     Runnable r = () -> {
-                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless(), scraperDTO.getScraperTypeDTO().getSearchValue());
+                        DriverWrapper driverWrapper = driverService.setupWebDriverSReality(webDriverProperties.getHeadless(), scraperDTO.getScraperTypeDTO().getSearchValue());
                         log.debug("{}: Scraping headers for: {}.", driverWrapper.getName(), scraperDTO.getLocationId());
                         try {
                             Optional<LocationEntity> locationEntityOptional = locationRepository.findById(scraperDTO.getLocationId());
@@ -182,7 +185,7 @@ public class SRealityService {
             for (ScraperDTO scraperDTO : scraperDTOS) {
                 if (scraperDTO.getParamsDone() == null) {
                     Runnable r = () -> {
-                        DriverWrapper driverWrapper = driverService.setupWebDriver(webDriverProperties.getHeadless(), scraperDTO.getScraperTypeDTO().getSearchValue());
+                        DriverWrapper driverWrapper = driverService.setupWebDriverSReality(webDriverProperties.getHeadless(), scraperDTO.getScraperTypeDTO().getSearchValue());
                         log.debug("{}: Scraping params for scraper entity: {}.", driverWrapper.getName(), scraperDTO);
                         Instant start1 = Instant.now();
                         List<ScraperResultEntity> scraperResultEntities = scraperResultRepository.findAllByScraperEntity_idAndParamsDoneIsNull(scraperDTO.getId());
@@ -219,7 +222,6 @@ public class SRealityService {
                                     } else {
                                         scraperResultDTO.setAvailable(true); // liquibase/postgresql default doesn't work for some reason
                                         scraperService.scrapeParams(driverWrapper, scraperResultDTO);
-                                        scraperService.setParamsDone(scraperResultDTO);
 
                                         scraperResultCache.put(scraperResultDTO.getLink(), scraperResultDTO);
                                     }
@@ -283,6 +285,58 @@ public class SRealityService {
         if (maintenanceEnumList.contains(MaintenanceEnum.SCRAPER_RESULT_DUPLICATES_MAINTENANCE)) {
             scraperService.runScraperResultDuplicateMaintenance();
         }
+        if(maintenanceEnumList.contains(MaintenanceEnum.PARAMS_DONE)){
+            scraperService.runParamsDoneMaintenance();
+        }
         log.debug("Maintenance done in {} s.", Duration.between(start, Instant.now()).getSeconds());
+    }
+
+    public List<ScraperEntity> fetchDataForMigration() {
+        log.debug("Fetching data for migration.");
+        Instant start = Instant.now();
+        List<ScraperEntity> scraperEntities = scraperRepository.fetchDataForMigration();
+        //noinspection ReplaceInefficientStreamCount,ResultOfMethodCallIgnored
+        scraperEntities.forEach(se -> se.getScraperResultEntities().forEach(sre -> sre.getParameterEntities().stream().count())); // force fetch everything
+        log.debug("Data fetched in {}.", Duration.between(start, Instant.now()).toString());
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        MigrationPackage migrationPackage = new MigrationPackage();
+        migrationPackage.setScraperEntities(scraperEntities);
+
+        try {
+            MigrationPackage newMigrationPackage = objectMapper.readValue(objectMapper.writeValueAsString(migrationPackage), MigrationPackage.class);
+            return newMigrationPackage.getScraperEntities();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public void migrateData(List<ScraperEntity> allScraperEntities) {
+        log.debug("Migrating {} scraper entities.", allScraperEntities.size());
+        Instant start = Instant.now();
+
+        AtomicInteger scraperEntityCount = new AtomicInteger();
+        AtomicInteger scraperEntityResultCount = new AtomicInteger();
+
+        for (ScraperEntity scraperEntity : allScraperEntities) {
+            scraperEntity.setId(null);
+            ScraperEntity newScraperEntity = scraperRepository.save(scraperEntity);
+
+            log.debug("Scraper entities migrated: {}.", scraperEntityCount.incrementAndGet());
+
+            List<ScraperResultEntity> scraperResultEntities = scraperEntity.getScraperResultEntities();
+            for (ScraperResultEntity scraperResultEntity : scraperResultEntities) {
+                scraperResultEntity.setId(null);
+                scraperResultEntity.setScraperEntity(newScraperEntity);
+                scraperResultEntity.getParameterEntities().forEach(p -> p.setId(null));
+
+                scraperResultRepository.save(scraperResultEntity);
+            }
+            int sreCount = scraperEntityResultCount.addAndGet(scraperResultEntities.size());
+            if (sreCount > 0) {
+                log.debug("Scraper entity results migrated: {}.", sreCount);
+            }
+        }
+        log.debug("Migrating {} scraper entities done in {}.", allScraperEntities.size(), Duration.between(start, Instant.now()).toString());
     }
 }

@@ -46,7 +46,11 @@ public class ScraperService {
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             Util.scrapePropertyParams(driverWrapper, scraperResultDTO);
             ScraperResultEntity scraperResultEntity = entityMapper.scraperResultDTOToScraperResultEntity(scraperResultDTO);
+            if (!scraperResultEntity.isAvailable() && scraperResultEntity.getParameterEntities() == null) {
+                scraperResultEntity.setParameterEntities(new ArrayList<>());
+            }
             scraperResultRepository.save(scraperResultEntity);
+            setParamsDone(scraperResultDTO);
             if (scraperResultEntity.isAvailable()) {
                 log.trace("Property params saved: {}.", scraperResultEntity.getParameterEntities().size());
             } else {
@@ -179,5 +183,48 @@ public class ScraperService {
         }
 
         log.debug("Scraper result duplicates maintenance END in {} s.", Duration.between(start, Instant.now()).toSeconds());
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void runParamsDoneMaintenance() {
+        Instant start = Instant.now();
+        log.debug("Params done maintenance START");
+        AtomicInteger scraperEntitiesCount = new AtomicInteger();
+        AtomicInteger scraperResultEntitiesCount = new AtomicInteger();
+
+        // params not done on scraper entities
+        List<ScraperEntity> scraperEntities = scraperRepository.findAllByHeadersDoneIsNotNullAndParamsDoneIsNull();
+
+        for (ScraperEntity scraperEntity : scraperEntities) {
+            List<ScraperResultEntity> scraperResultEntities = scraperEntity.getScraperResultEntities();
+            for (ScraperResultEntity scraperResultEntity : scraperResultEntities) {
+                if (!scraperResultEntity.isAvailable() && scraperResultEntity.getParamsDone() == null) {
+                    scraperResultEntity.setParamsDone(getCurrentTimestamp());
+                    scraperResultRepository.save(scraperResultEntity);
+                    scraperResultEntitiesCount.incrementAndGet();
+                }
+            }
+            // count all that don't have params done, if there are none, mark the scraper entity as params done
+            long count = scraperResultEntities.stream().filter(sre -> sre.getParamsDone() == null).count();
+            if (count == 0) {
+                scraperEntity.setParamsDone(getCurrentTimestamp());
+                scraperRepository.save(scraperEntity);
+                scraperEntitiesCount.incrementAndGet();
+            }
+        }
+
+        // params not done on scraper result entities
+        List<ScraperResultEntity> scraperResultEntities = scraperResultRepository.findAllByParamsDoneIsNull();
+        for (ScraperResultEntity scraperResultEntity : scraperResultEntities) {
+            if (!scraperResultEntity.isAvailable() && scraperResultEntity.getParamsDone() == null) {
+                scraperResultEntity.setParamsDone(getCurrentTimestamp());
+                scraperResultRepository.save(scraperResultEntity);
+                scraperResultEntitiesCount.incrementAndGet();
+            }
+        }
+
+        log.debug("Updated {} scraper entities and {} scraper result entities.", scraperEntitiesCount.get(), scraperResultEntitiesCount.get());
+
+        log.debug("Params done maintenance END in {} s.", Duration.between(start, Instant.now()).toSeconds());
     }
 }

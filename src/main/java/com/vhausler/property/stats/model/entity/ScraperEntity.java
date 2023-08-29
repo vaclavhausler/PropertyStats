@@ -1,5 +1,7 @@
 package com.vhausler.property.stats.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -9,28 +11,20 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "scraper", schema = "property_stats", catalog = "property_stats")
+@Table(name = "scraper")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = ScraperEntity.class)
 public class ScraperEntity {
 
     @Id
-    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id", referencedColumnName = "id")
     private LocationEntity locationEntity;
 
-    @Basic
-    @Column(name = "created")
     private Timestamp created;
-
-    @Basic
-    @Column(name = "headers_done")
     private Timestamp headersDone;
-
-    @Basic
-    @Column(name = "params_done")
     private Timestamp paramsDone;
 
     @ToString.Exclude

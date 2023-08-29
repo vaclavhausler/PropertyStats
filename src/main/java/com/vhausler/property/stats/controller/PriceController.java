@@ -44,7 +44,7 @@ public class PriceController {
         String kosikUrl4x15L = "https://www.kosik.cz/produkt/coca-cola-4x1-5l#productDescription";
         String kosikCssSelector = "[data-tid=\"product-box__price\"]";
 
-        DriverWrapper driverWrapper = driverService.setupWebDriver(false);
+        DriverWrapper driverWrapper = driverService.setupWebDriverGeneric(false);
         WebDriver wd = driverWrapper.getWd();
 
         addResult(result, wd, tescoUrl, tescoCssSelector, "Tesco (1.5 L)", SMALL);

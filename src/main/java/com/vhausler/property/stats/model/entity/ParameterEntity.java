@@ -1,28 +1,26 @@
 package com.vhausler.property.stats.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
 @Data
 @Entity
-@Table(name = "parameter", schema = "property_stats", catalog = "property_stats")
+@Table(name = "parameter")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id", scope = ParameterEntity.class)
 public class ParameterEntity {
 
     @Id
-    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @ToString.Exclude
     @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
     @JoinColumn(name = "scraper_result_id", referencedColumnName = "id")
     private ScraperResultEntity scraperResultEntity;
 
-    @Basic
-    @Column(name = "key")
     private String key;
-    @Basic
-    @Column(name = "value")
     private String value;
 }

@@ -22,25 +22,15 @@ public class DriverService {
 
     private final ConfigProperties.WebDriverProperties webDriverProperties;
 
-    public DriverWrapper setupWebDriver(boolean headless) {
-        Instant start = Instant.now();
-        WebDriver wd;
-        FirefoxOptions options = new FirefoxOptions();
-        options.setBinary(webDriverProperties.getPathToFirefoxExecutable());
-        if (headless) {
-            options.addArguments("-headless");
-        }
-
-        wd = new FirefoxDriver(options);
-        wd.manage().window().maximize();
-
-        DriverWrapper driverWrapper = new DriverWrapper(wd);
-
-        log.debug("New driver '{}' initialized in {} sec.", driverWrapper.getName(), Duration.between(start, Instant.now()).getSeconds());
-        return driverWrapper;
+    public DriverWrapper setupWebDriverGeneric(boolean headless) {
+        return setupWebDriver(headless, null);
     }
 
-    public DriverWrapper setupWebDriver(boolean headless, String searchValue) {
+    public DriverWrapper setupWebDriverSReality(boolean headless, String searchValue) {
+        return setupWebDriver(headless, searchValue);
+    }
+
+    private DriverWrapper setupWebDriver(boolean headless, String searchValue) {
         Instant start = Instant.now();
         WebDriver wd;
         FirefoxOptions options = new FirefoxOptions();
@@ -52,8 +42,11 @@ public class DriverService {
         wd = new FirefoxDriver(options);
         wd.manage().window().maximize();
 
-        dealWithCookies(wd);
-        increaseResultSize(wd, searchValue);
+        if (searchValue != null) {
+            dealWithCookies(wd);
+            increaseResultSize(wd, searchValue);
+        }
+
         DriverWrapper driverWrapper = new DriverWrapper(wd);
 
         log.debug("New driver '{}' initialized in {} sec.", driverWrapper.getName(), Duration.between(start, Instant.now()).getSeconds());

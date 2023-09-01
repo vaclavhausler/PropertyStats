@@ -114,6 +114,7 @@ public class Util {
             String link = info.findElement(By.cssSelector("a[class='title']")).getAttribute("href");
             if (price != null && pricePerSquareMeter != null) {
                 ScraperResultDTO scraperResultDTO = new ScraperResultDTO();
+                scraperResultDTO.setId(null);
                 scraperResultDTO.setScraperId(scraperDTO.getId());
                 scraperResultDTO.setTitle(title);
                 scraperResultDTO.setAddress(address);

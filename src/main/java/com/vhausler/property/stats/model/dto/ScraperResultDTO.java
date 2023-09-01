@@ -8,8 +8,8 @@ import java.util.List;
 
 @Data
 public class ScraperResultDTO {
-    private long id;
-    private long scraperId;
+    private Long id;
+    private Long scraperId;
     private String title;
     private String address;
     private String link;

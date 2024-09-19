@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Endpoints {
+    public static final String STATS = "/stats";
+    //
     public static final String MIGRATION = "/migration";
     public static final String MAINTENANCE = "/maintenance";
     public static final String SCRAPER_TYPES = "/scraper-types";

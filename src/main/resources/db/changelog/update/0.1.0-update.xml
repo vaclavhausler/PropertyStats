@@ -42,4 +42,8 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="bigger-parameter-value-type" author="vhausler">
+        <modifyDataType tableName="parameter" columnName="value" newDataType="varchar(500)"/>
+    </changeSet>
+
 </databaseChangeLog>

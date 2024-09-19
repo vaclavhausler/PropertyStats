@@ -16,18 +16,17 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -309,7 +308,7 @@ public class Util {
             return future.get(10, TimeUnit.SECONDS);
         } catch (Exception e) { // NOSONAR
             // ignore
-            log.debug("Timeout waiting for element: {}", by);
+            log.debug("Timeout waiting for element: {}, on page: {}", by, wd.getCurrentUrl());
         }
         if (noOfferFound.get()) {
             throw new IllegalStateException(NO_OFFER_FOUND_EXCEPTION);
@@ -337,16 +336,21 @@ public class Util {
     public static void increaseResultSize(WebDriver wd, String searchValue) {
         log.trace("Increasing result size.");
 
-        // navigate to a site with results
-        wd.get(Constants.URL.BASE_SEARCH_URL.replace("${searchValue}", searchValue) + Constants.CITY.PRIBRAM);
-        customWait(500);
-        waitUntilElementFound(wd, By.className("property-list"));
+        try {
+            // navigate to a site with results
+            wd.get(Constants.URL.BASE_SEARCH_URL.replace("${searchValue}", searchValue) + Constants.CITY.PRAHA);
+            customWait(500);
+            waitUntilElementFound(wd, By.className("property-list"));
 
-        // increase the result size
-        wd.findElement(By.className("per-page")).findElement(By.cssSelector("span[list-select='listSelectConf'")).click();
-        WebElement perPageSelect = waitUntilElementFound(wd, By.className("per-page-select"));
-        assert perPageSelect != null;
-        perPageSelect.findElement(By.className("options")).findElement(By.cssSelector("li:last-of-type")).findElement(By.cssSelector("button")).click();
+            // increase the result size
+            wd.findElement(By.className("per-page")).findElement(By.cssSelector("span[list-select='listSelectConf'")).click();
+            WebElement perPageSelect = waitUntilElementFound(wd, By.className("per-page-select"));
+            assert perPageSelect != null;
+            perPageSelect.findElement(By.className("options")).findElement(By.cssSelector("li:last-of-type")).findElement(By.cssSelector("button")).click();
+        } catch (Exception e) {
+            log.error("Failed to increase result size at page: {}", wd.getCurrentUrl());
+            throw e;
+        }
 
         log.trace("Done increasing result size.");
     }
@@ -356,17 +360,169 @@ public class Util {
      * avoiding ugly redirect to <a href="https://www.seznam.cz">seznam.cz</a> where the actual consent form is located.
      */
     public static void dealWithCookies(WebDriver wd) {
-        log.trace("Dealing with cookies.");
-        Cookie consentCookie = Util.getCookie(Constants.Cookie.CONSENT);
-        log.trace("Navigating to domain.");
-        wd.get(Constants.URL.BASE_SETUP_URL + "/404");
-        customWait(2000);
-        wd.get(Constants.URL.BASE_SETUP_URL + "/404");
-        waitUntilElementFound(wd, By.className("error-description"));
-        wd.manage().deleteAllCookies();
-        log.trace("Adding cookie.");
-        wd.manage().addCookie(consentCookie);
+        log.debug("Dealing with cookies.");
+
+//        wd.get("https://cmp.seznam.cz");
+        wd.get("https://sreality.cz");
+        customWait(3000);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
+        Date expiry;
+        try {
+            expiry = sdf.parse("Fri May 16 11:53:55 CEST 2025");
+        } catch (ParseException e) {
+            throw new IllegalStateException(e);
+        }
+
+        // Set cookies
+        Cookie cookie1 = new Cookie.Builder("__cw_snc", "1")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie2 = new Cookie.Builder("cmphitorder", "2")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie3 = new Cookie.Builder("cmprefreshcount", "0|r856af8f1c")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie4 = new Cookie.Builder("cmpsessid", "r856af8f1c")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie5 = new Cookie.Builder("cw_referrer", "https://www.sreality.cz")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie6 = new Cookie.Builder("euconsent-v2", "CQFF8EAQFF8EAD3ACQCSBHFsAP_gAEPgAATIJVwQgAAwAKAAsACAAFQALgAZAA6ACAAFAAKgAWgAyABoADmAIgAigBHACSAEwAJwAVQAtgBfgDCAMUAgACEgEQARQAjoBOAE6AL4AaQA4gB3ADxAH6AQgAkwBOACegFIAKyAWYAuoBgQDTgG0APkAjUBHQCaQE2gJ0AVIAtQBbgC8wGMgMkAZcA0oBqYDugHfgQHAhcBGYCTQEqwQugRAALAAqABcAEAAMgAaABEACOAEwAKoAYgA_ACEgEQARIAjgBOADLAGaAO4AfoBCACLAF1ANoAm0BUgC1AFuALzAYIAyQBlwDUwIXAAAAA.YAAAAAAAAWAA")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie7 = new Cookie.Builder("last-redirect", "1")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie8 = new Cookie.Builder("lps", "eyJfZnJlc2giOmZhbHNlLCJfcGVybWFuZW50Ijp0cnVlfQ.ZunbIA.OUCqQ15QWsxDVPaaDUJLIz3CF8Y")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie9 = new Cookie.Builder("szncmpone", "1")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        Cookie cookie10 = new Cookie.Builder("user-flags", "")
+                .domain(".sreality.cz")
+                .expiresOn(expiry)
+                .isSecure(true)
+                .path("/")
+                .build();
+
+        // Add cookies to the web driver
+        wd.manage().addCookie(cookie1);
+        wd.manage().addCookie(cookie2);
+        wd.manage().addCookie(cookie3);
+        wd.manage().addCookie(cookie4);
+        wd.manage().addCookie(cookie5);
+        wd.manage().addCookie(cookie6);
+        wd.manage().addCookie(cookie7);
+        wd.manage().addCookie(cookie8);
+        wd.manage().addCookie(cookie9);
+        wd.manage().addCookie(cookie10);
+
+        wd.get("https://www.sreality.cz");
+
         log.trace("Done dealing with cookies.");
+    }
+
+    public static Set<Cookie> loadCookiesFromFile(String filename) {
+        Set<Cookie> cookies = new HashSet<>();
+
+        try {
+            File file = new File(filename);
+            FileReader fileReader = new FileReader(file);
+            BufferedReader buffReader = new BufferedReader(fileReader);
+            String strLine;
+            while ((strLine = buffReader.readLine()) != null) {
+
+                StringTokenizer token = new StringTokenizer(strLine, ";");
+                while (token.hasMoreTokens()) {
+                    String name = token.nextToken();
+                    String value = token.nextToken();
+                    String domain = token.nextToken();
+                    String path = token.nextToken();
+                    Date expiry = null;
+
+                    String val;
+                    if (!(val = token.nextToken()).equals("null")) {
+                        // expiry is stored in date string format, not long.
+                        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
+                        try {
+                            expiry = sdf.parse(val);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    boolean isSecure = Boolean.parseBoolean(token.nextToken());
+                    Cookie ck = new Cookie(name, value, domain, path, expiry, isSecure);
+                    cookies.add(ck);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return cookies;
+    }
+
+    private static void saveCookiesToFile(WebDriver wd) {
+        Set<Cookie> cookies = wd.manage().getCookies();
+        File file = new File("Cookies.data");
+
+        try {
+            // Delete old file if exists
+            file.delete();
+            file.createNewFile();
+            FileWriter fileWriter = new FileWriter(file);
+            BufferedWriter buffWriter = new BufferedWriter(fileWriter);
+
+            for (Cookie cookie : cookies) {
+                buffWriter.write((cookie.getName() + ";" + cookie.getValue() + ";" + cookie.getDomain() + ";" + cookie.getPath() + ";" + cookie.getExpiry() + ";" + cookie.isSecure()));
+                buffWriter.newLine();
+            }
+            buffWriter.close();
+            fileWriter.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

@@ -52,13 +52,17 @@ public class ScraperService {
             scraperResultRepository.save(scraperResultEntity);
             setParamsDone(scraperResultDTO);
             if (scraperResultEntity.isAvailable()) {
-                log.trace("Property params saved: {}.", scraperResultEntity.getParameterEntities().size());
+                if (scraperResultEntity.getParameterEntities() != null) {
+                    log.trace("Property params saved: {}.", scraperResultEntity.getParameterEntities().size());
+                } else {
+                    log.trace("Property params saved: {}.", scraperResultEntity.getParameterEntities());
+                }
             } else {
                 log.trace("Offer no longer available: {}.", scraperResultDTO.getLink());
             }
         });
         try {
-            future.get(10, TimeUnit.SECONDS);
+            future.get(240, TimeUnit.SECONDS);
         } catch (Exception e) { // NOSONAR
             log.debug("Scrape params timeout. {}", scraperResultDTO.getLink());
             throw new IllegalStateException(e);

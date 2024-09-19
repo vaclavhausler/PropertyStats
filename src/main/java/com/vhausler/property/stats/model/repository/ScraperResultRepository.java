@@ -22,6 +22,13 @@ public interface ScraperResultRepository extends JpaRepository<ScraperResultEnti
     )
     Page<ScraperResultEntity> findDistinctLinks(Pageable pageable);
 
+    @Query(
+            value = "select distinct on (link) * from property_stats.scraper_result where params_done is not null and created > NOW() - INTERVAL '6 months'",
+            countQuery = "select count(distinct link) from property_stats.scraper_result where params_done is not null and created > NOW() - INTERVAL '6 months'",
+            nativeQuery = true
+    )
+    Page<ScraperResultEntity> findDistinctLinksLast6Months(Pageable pageable);
+
     List<ScraperResultEntity> findAllByScraperEntity_idAndLink(long id, String link);
 
     @Modifying

@@ -52,4 +52,17 @@ public class DriverService {
         log.debug("New driver '{}' initialized in {} sec.", driverWrapper.getName(), Duration.between(start, Instant.now()).getSeconds());
         return driverWrapper;
     }
+
+    public static void main(String[] args) {
+        System.setProperty("webdriver.gecko.driver", "webdriver/geckodriver.exe"); // path to win32 gecko driver
+        System.setProperty(FirefoxDriver.SystemProperty.BROWSER_LOGFILE, "/dev/null"); // turn off logging
+
+        ConfigProperties.WebDriverProperties props = new ConfigProperties.WebDriverProperties();
+        props.setHeadless(false);
+        props.setPathToFirefoxExecutable("C:\\Program Files\\Mozilla Firefox\\firefox.exe");
+        DriverService driverService = new DriverService(props);
+        DriverWrapper driverWrapper = driverService.setupWebDriverSReality(false, "prodej/byty");
+        WebDriver wd = driverWrapper.getWd();
+        wd.get("https://www.sreality.cz/hledani/prodej/byty/pribram");
+    }
 }

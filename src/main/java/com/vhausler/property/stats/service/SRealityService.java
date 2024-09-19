@@ -179,7 +179,8 @@ public class SRealityService {
             ExecutorService pool = Executors.newFixedThreadPool(propertyStatsProperties.getParamsThreadCount());
 
             // load the cache
-            pool.execute(this::loadScraperResultDTOCache);
+            loadScraperResultDTOCache();
+//            pool.execute(this::loadScraperResultDTOCache);
 
             // process anything unfinished
             for (ScraperDTO scraperDTO : scraperDTOS) {
@@ -262,11 +263,15 @@ public class SRealityService {
     public void loadScraperResultDTOCache() {
         log.debug("Loading scraper result cache.");
         Instant start = Instant.now();
-        Page<ScraperResultEntity> linksPage = scraperResultRepository.findDistinctLinks(Pageable.ofSize(propertyStatsProperties.getBatchSize()));
-        linksPage.get().forEach(e -> scraperResultCache.put(e.getLink(), entityMapper.scraperResultEntityToScraperResultDTO(e)));
+        Page<ScraperResultEntity> linksPage = scraperResultRepository.findDistinctLinksLast6Months(Pageable.ofSize(propertyStatsProperties.getBatchSize()));
+        linksPage.get()
+                .filter(ScraperResultEntity::isAvailable)
+                .forEach(e -> scraperResultCache.put(e.getLink(), entityMapper.scraperResultEntityToScraperResultDTO(e)));
         while (linksPage.hasNext()) {
-            linksPage = scraperResultRepository.findDistinctLinks(linksPage.nextPageable());
-            linksPage.get().forEach(e -> scraperResultCache.put(e.getLink(), entityMapper.scraperResultEntityToScraperResultDTO(e)));
+            linksPage = scraperResultRepository.findDistinctLinksLast6Months(linksPage.nextPageable());
+            linksPage.get()
+                    .filter(ScraperResultEntity::isAvailable)
+                    .forEach(e -> scraperResultCache.put(e.getLink(), entityMapper.scraperResultEntityToScraperResultDTO(e)));
             log.debug("Scraper result cache contains: {} items.", scraperResultCache.size());
         }
         log.debug("Finished loading scraper result cache in {} ms.", Duration.between(start, Instant.now()).toMillis());
@@ -285,7 +290,7 @@ public class SRealityService {
         if (maintenanceEnumList.contains(MaintenanceEnum.SCRAPER_RESULT_DUPLICATES_MAINTENANCE)) {
             scraperService.runScraperResultDuplicateMaintenance();
         }
-        if(maintenanceEnumList.contains(MaintenanceEnum.PARAMS_DONE)){
+        if (maintenanceEnumList.contains(MaintenanceEnum.PARAMS_DONE)) {
             scraperService.runParamsDoneMaintenance();
         }
         log.debug("Maintenance done in {} s.", Duration.between(start, Instant.now()).getSeconds());

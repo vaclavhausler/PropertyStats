@@ -19,4 +19,6 @@ public interface ScraperRepository extends JpaRepository<ScraperEntity, Integer>
             "left join fetch se.locationEntity " +
             "left join fetch se.scraperTypeEntity")
     List<ScraperEntity> fetchDataForMigration();
+
+    List<ScraperEntity> findAllByScraperTypeEntity_Id(String scraperTypeId);
 }
